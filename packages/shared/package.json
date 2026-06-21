@@ -1,0 +1,12 @@
+{
+  "name": "@health-checkup/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared TypeScript interfaces, types, enums, and utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --passWithNoTests"
+  }
+}

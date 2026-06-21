@@ -1,0 +1,19 @@
+{
+  "name": "@health-checkup/services",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend microservices for the Senior Citizen Health Checkup System",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@health-checkup/shared": "*",
+    "@prisma/client": "^5.10.0",
+    "ioredis": "^5.3.2",
+    "bullmq": "^5.1.0",
+    "uuid": "^9.0.0"
+  }
+}

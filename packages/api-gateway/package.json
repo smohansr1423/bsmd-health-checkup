@@ -1,0 +1,20 @@
+{
+  "name": "@health-checkup/api-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Express-based API Gateway (BFF pattern) for the Senior Citizen Health Checkup System",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@health-checkup/shared": "*",
+    "@health-checkup/services": "*",
+    "express": "^4.18.2",
+    "ioredis": "^5.3.2"
+  }
+}

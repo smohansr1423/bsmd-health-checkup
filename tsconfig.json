@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true,
+    "incremental": true,
+    "types": ["node", "jest"],
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@health-checkup/shared": ["packages/shared/src"],
+      "@health-checkup/services": ["packages/services/src"],
+      "@health-checkup/api-gateway": ["packages/api-gateway/src"],
+      "@health-checkup/frontend": ["packages/frontend/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "**/node_modules", "**/dist"]
+}

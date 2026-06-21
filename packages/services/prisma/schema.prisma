@@ -1,0 +1,989 @@
+// Prisma Schema for Senior Citizen Health Checkup System
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUTH & USER MANAGEMENT
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String
+  role                UserRole
+  isActive            Boolean   @default(true)
+  isLocked            Boolean   @default(false)
+  lockedAt            DateTime?
+  lockoutReason       String?
+  consecutiveFailures Int       @default(0)
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sessions    UserSession[]
+  auditEntries AuditEntry[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  PHYSICIAN
+  LAB_TECHNICIAN
+  SENIOR_CITIZEN
+  CAREGIVER
+}
+
+model UserSession {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([token])
+  @@map("user_sessions")
+}
+
+// ─────────────────────────────────────────────────────────────
+// HEALTH PROFILE & RELATED
+// ─────────────────────────────────────────────────────────────
+
+model HealthProfile {
+  id                        String   @id @default(uuid())
+  fullName                  String
+  dateOfBirth               DateTime
+  gender                    Gender
+  phoneNumber               String
+  addressStreet             String
+  addressCity               String
+  addressState              String
+  addressPostalCode         String
+  addressCountry            String
+  preferredLanguage         SupportedLanguage @default(EN)
+  textSize                  TextSize          @default(NORMAL)
+  contrastMode              ContrastMode      @default(DEFAULT)
+  voiceAssistance           Boolean           @default(false)
+  largeButtonMode           Boolean           @default(false)
+  simplifiedNavigation      Boolean           @default(false)
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+
+  emergencyContacts         EmergencyContact[]
+  allergies                 Allergy[]
+  medicalHistory            MedicalHistoryEntry[]
+  medications               Medication[]
+  insurancePolicy           InsurancePolicy?
+  checkupSessions           CheckupSession[]
+  appointments              Appointment[]
+  testResults               TestResult[]
+  healthReports             HealthReport[]
+  followUpActions           FollowUpAction[]
+  invoices                  Invoice[]
+  insuranceClaims           InsuranceClaim[]
+  notifications             Notification[]
+  notificationPreferences   NotificationPreferences?
+  criticalAlerts            CriticalAlert[]
+  deviceRegistries          DeviceRegistry[]
+  dailyHealthRecords        DailyHealthRecord[]
+  healthReadings            HealthReading[]
+  readingAlerts             ReadingAlert[]
+
+  @@index([fullName, dateOfBirth])
+  @@index([phoneNumber])
+  @@map("health_profiles")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum SupportedLanguage {
+  EN
+  HI
+  ES
+  ZH
+  AR
+  FR
+  PT
+  BN
+  JA
+  DE
+}
+
+enum TextSize {
+  NORMAL
+  LARGE
+  EXTRA_LARGE
+}
+
+enum ContrastMode {
+  DEFAULT
+  HIGH_CONTRAST_LIGHT
+  HIGH_CONTRAST_DARK
+}
+
+model EmergencyContact {
+  id              String @id @default(uuid())
+  healthProfileId String
+  name            String
+  relationship    String
+  phoneNumber     String
+
+  healthProfile HealthProfile @relation(fields: [healthProfileId], references: [id], onDelete: Cascade)
+
+  @@index([healthProfileId])
+  @@map("emergency_contacts")
+}
+
+model Allergy {
+  id              String         @id @default(uuid())
+  healthProfileId String
+  substance       String
+  severity        AllergySeverity
+  notes           String?
+
+  healthProfile HealthProfile @relation(fields: [healthProfileId], references: [id], onDelete: Cascade)
+
+  @@index([healthProfileId])
+  @@map("allergies")
+}
+
+enum AllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+}
+
+model MedicalHistoryEntry {
+  id              String    @id @default(uuid())
+  healthProfileId String
+  condition       String
+  diagnosedDate   DateTime?
+  status          MedicalConditionStatus
+  notes           String?
+
+  healthProfile HealthProfile @relation(fields: [healthProfileId], references: [id], onDelete: Cascade)
+
+  @@index([healthProfileId])
+  @@map("medical_history_entries")
+}
+
+enum MedicalConditionStatus {
+  ACTIVE
+  RESOLVED
+}
+
+model Medication {
+  id              String    @id @default(uuid())
+  healthProfileId String
+  name            String
+  dosage          String
+  frequency       String
+  startDate       DateTime
+  endDate         DateTime?
+
+  healthProfile HealthProfile @relation(fields: [healthProfileId], references: [id], onDelete: Cascade)
+
+  @@index([healthProfileId])
+  @@map("medications")
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHECKUP PACKAGES
+// ─────────────────────────────────────────────────────────────
+
+model CheckupPackage {
+  id           String   @id @default(uuid())
+  name         String
+  tier         PackageTier
+  totalCost    Decimal  @db.Decimal(12, 2)
+  discountRate Decimal? @db.Decimal(5, 2)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tests           PackageTest[]
+  checkupSessions CheckupSession[]
+  appointments    Appointment[]
+
+  @@index([tier])
+  @@index([isActive])
+  @@map("checkup_packages")
+}
+
+enum PackageTier {
+  BASIC
+  STANDARD
+  COMPREHENSIVE
+  CUSTOM
+}
+
+model PackageTest {
+  id                String       @id @default(uuid())
+  packageId         String
+  testType          String
+  name              String
+  category          TestCategory
+  cost              Decimal      @db.Decimal(12, 2)
+  contraindications String[]
+  plausibleRangeMin Float
+  plausibleRangeMax Float
+  unit              String
+
+  package CheckupPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@index([testType])
+  @@map("package_tests")
+}
+
+enum TestCategory {
+  CARDIAC
+  VISION
+  HEARING
+  MUSCULOSKELETAL
+  BLOOD
+  URINE
+  IMAGING
+  COGNITIVE
+  ENDOCRINE
+  ORGAN_FUNCTION
+}
+
+// ─────────────────────────────────────────────────────────────
+// APPOINTMENTS & SCHEDULING
+// ─────────────────────────────────────────────────────────────
+
+model TimeSlot {
+  id           String   @id @default(uuid())
+  physicianId  String
+  startTime    DateTime
+  endTime      DateTime
+  isAvailable  Boolean  @default(true)
+
+  physician    Physician @relation(fields: [physicianId], references: [id])
+  appointments Appointment[]
+
+  @@index([physicianId, startTime])
+  @@index([isAvailable, startTime])
+  @@map("time_slots")
+}
+
+model Appointment {
+  id             String            @id @default(uuid())
+  seniorId       String
+  physicianId    String
+  packageId      String
+  timeSlotId     String
+  scheduledDate  DateTime
+  status         AppointmentStatus @default(SCHEDULED)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  senior         HealthProfile  @relation(fields: [seniorId], references: [id])
+  physician      Physician      @relation(fields: [physicianId], references: [id])
+  package        CheckupPackage @relation(fields: [packageId], references: [id])
+  timeSlot       TimeSlot       @relation(fields: [timeSlotId], references: [id])
+  checkupSession CheckupSession?
+
+  @@index([seniorId])
+  @@index([physicianId])
+  @@index([scheduledDate])
+  @@index([status])
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CHECKED_IN
+  IN_PROGRESS
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHECKUP SESSIONS
+// ─────────────────────────────────────────────────────────────
+
+model CheckupSession {
+  id                   String               @id @default(uuid())
+  appointmentId        String               @unique
+  seniorId             String
+  packageId            String
+  assignedPhysicianId  String
+  status               CheckupSessionStatus @default(IN_PROGRESS)
+  startedAt            DateTime             @default(now())
+  completedAt          DateTime?
+
+  appointment          Appointment            @relation(fields: [appointmentId], references: [id])
+  senior               HealthProfile          @relation(fields: [seniorId], references: [id])
+  package              CheckupPackage         @relation(fields: [packageId], references: [id])
+  assignedPhysician    Physician              @relation(fields: [assignedPhysicianId], references: [id])
+  specialistAssignments SpecialistAssignment[]
+  testResults          TestResult[]
+  healthReport         HealthReport?
+  invoice              Invoice?
+
+  @@index([seniorId])
+  @@index([assignedPhysicianId])
+  @@index([status])
+  @@map("checkup_sessions")
+}
+
+enum CheckupSessionStatus {
+  IN_PROGRESS
+  COMPLETE
+  PENDING_RESULTS
+}
+
+model SpecialistAssignment {
+  id               String   @id @default(uuid())
+  checkupSessionId String
+  specialistId     String
+  specialization   String
+  testCategories   TestCategory[]
+
+  checkupSession CheckupSession @relation(fields: [checkupSessionId], references: [id], onDelete: Cascade)
+  specialist     Physician      @relation(fields: [specialistId], references: [id])
+
+  @@index([checkupSessionId])
+  @@index([specialistId])
+  @@map("specialist_assignments")
+}
+
+// ─────────────────────────────────────────────────────────────
+// TEST RESULTS
+// ─────────────────────────────────────────────────────────────
+
+model TestResult {
+  id                  String       @id @default(uuid())
+  checkupSessionId    String
+  seniorId            String
+  testType            String
+  measuredValue       Float
+  unit                String
+  collectionTimestamp DateTime
+  technicianId        String
+  riskCategory        RiskCategory?
+  // Age-adjusted reference range
+  refRangeMin         Float?
+  refRangeMax         Float?
+  refBorderlineLow    Float?
+  refBorderlineHigh   Float?
+  refCriticalLow      Float?
+  refCriticalHigh     Float?
+  refAgeGroup         AgeGroup?
+  createdAt           DateTime     @default(now())
+
+  checkupSession CheckupSession @relation(fields: [checkupSessionId], references: [id])
+  senior         HealthProfile  @relation(fields: [seniorId], references: [id])
+  amendments     Amendment[]
+  criticalAlerts CriticalAlert[]
+
+  @@index([checkupSessionId])
+  @@index([seniorId])
+  @@index([testType])
+  @@index([seniorId, testType])
+  @@map("test_results")
+}
+
+enum RiskCategory {
+  NORMAL
+  BORDERLINE
+  CRITICAL
+  UNCATEGORIZED
+}
+
+enum AgeGroup {
+  SIXTY_TO_SIXTY_NINE     @map("60-69")
+  SEVENTY_TO_SEVENTY_NINE @map("70-79")
+  EIGHTY_TO_EIGHTY_NINE   @map("80-89")
+  NINETY_PLUS             @map("90+")
+}
+
+model Amendment {
+  id            String   @id @default(uuid())
+  testResultId  String
+  previousValue Float
+  newValue      Float
+  amendedBy     String
+  amendedAt     DateTime @default(now())
+  reason        String?
+
+  testResult TestResult @relation(fields: [testResultId], references: [id], onDelete: Cascade)
+
+  @@index([testResultId])
+  @@map("amendments")
+}
+
+// ─────────────────────────────────────────────────────────────
+// HEALTH REPORTS
+// ─────────────────────────────────────────────────────────────
+
+model HealthReport {
+  id                        String          @id @default(uuid())
+  checkupSessionId          String          @unique
+  seniorId                  String
+  healthScore               Int
+  healthScoreBreakdown      Json?
+  criticalFindings          Json?
+  physicianRecommendations  String[]
+  trendData                 Json?
+  pendingTests              String[]
+  language                  SupportedLanguage @default(EN)
+  clinicalContent           Json?
+  simplifiedContent         Json?
+  generatedAt               DateTime        @default(now())
+  regeneratedAt             DateTime?
+
+  checkupSession CheckupSession @relation(fields: [checkupSessionId], references: [id])
+  senior         HealthProfile  @relation(fields: [seniorId], references: [id])
+  followUpActions FollowUpAction[]
+
+  @@index([seniorId])
+  @@index([checkupSessionId])
+  @@map("health_reports")
+}
+
+// ─────────────────────────────────────────────────────────────
+// FOLLOW-UP ACTIONS
+// ─────────────────────────────────────────────────────────────
+
+model FollowUpAction {
+  id                  String           @id @default(uuid())
+  reportId            String
+  seniorId            String
+  description         String           @db.VarChar(500)
+  actionType          FollowUpActionType
+  dueDate             DateTime
+  assigneeNote        String?          @db.VarChar(300)
+  status              FollowUpStatus   @default(PENDING)
+  assignedDate        DateTime         @default(now())
+  completionDate      DateTime?
+  completionNotes     String?          @db.VarChar(1000)
+  assignedPhysicianId String
+
+  report    HealthReport  @relation(fields: [reportId], references: [id])
+  senior    HealthProfile @relation(fields: [seniorId], references: [id])
+  physician Physician     @relation(fields: [assignedPhysicianId], references: [id])
+
+  @@index([reportId])
+  @@index([seniorId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([assignedPhysicianId])
+  @@map("follow_up_actions")
+}
+
+enum FollowUpActionType {
+  SPECIALIST_REFERRAL
+  MEDICATION_CHANGE
+  LIFESTYLE_RECOMMENDATION
+  NEXT_CHECKUP_DATE
+}
+
+enum FollowUpStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+  EXPIRED
+}
+
+// ─────────────────────────────────────────────────────────────
+// BILLING & INVOICES
+// ─────────────────────────────────────────────────────────────
+
+model Invoice {
+  id                     String        @id @default(uuid())
+  invoiceNumber          String?       @unique
+  checkupSessionId       String        @unique
+  seniorId               String
+  subtotal               Decimal       @db.Decimal(12, 2)
+  discountRate           Decimal       @db.Decimal(5, 2) @default(0)
+  discountAmount         Decimal       @db.Decimal(12, 2) @default(0)
+  taxAmount              Decimal       @db.Decimal(12, 2) @default(0)
+  insuranceCoveredAmount Decimal       @db.Decimal(12, 2) @default(0)
+  advancePayments        Decimal       @db.Decimal(12, 2) @default(0)
+  totalAmountDue         Decimal       @db.Decimal(12, 2)
+  outstandingBalance     Decimal       @db.Decimal(12, 2)
+  paymentStatus          PaymentStatus @default(UNPAID)
+  language               SupportedLanguage @default(EN)
+  createdAt              DateTime      @default(now())
+  finalizedAt            DateTime?
+
+  checkupSession  CheckupSession   @relation(fields: [checkupSessionId], references: [id])
+  senior          HealthProfile    @relation(fields: [seniorId], references: [id])
+  lineItems       InvoiceLineItem[]
+  paymentRecords  PaymentRecord[]
+  insuranceClaims InsuranceClaim[]
+  installmentPlan InstallmentPlan?
+
+  @@index([seniorId])
+  @@index([checkupSessionId])
+  @@index([paymentStatus])
+  @@index([invoiceNumber])
+  @@map("invoices")
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID_IN_FULL
+}
+
+model InvoiceLineItem {
+  id              String  @id @default(uuid())
+  invoiceId       String
+  testType        String
+  testName        String
+  cost            Decimal @db.Decimal(12, 2)
+  discountApplied Decimal @db.Decimal(12, 2) @default(0)
+  taxApplied      Decimal @db.Decimal(12, 2) @default(0)
+  netAmount       Decimal @db.Decimal(12, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_line_items")
+}
+
+// ─────────────────────────────────────────────────────────────
+// PAYMENTS
+// ─────────────────────────────────────────────────────────────
+
+model PaymentRecord {
+  id            String        @id @default(uuid())
+  invoiceId     String
+  amount        Decimal       @db.Decimal(12, 2)
+  method        PaymentMethod
+  status        PaymentRecordStatus @default(PENDING)
+  transactionId String?
+  failureReason String?
+  processedAt   DateTime?
+  createdAt     DateTime      @default(now())
+
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id])
+  installment  Installment?  @relation
+
+  @@index([invoiceId])
+  @@index([status])
+  @@map("payment_records")
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+  DIGITAL_WALLET
+}
+
+enum PaymentRecordStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model InstallmentPlan {
+  id               String   @id @default(uuid())
+  invoiceId        String   @unique
+  totalAmount      Decimal  @db.Decimal(12, 2)
+  installmentCount Int
+  createdAt        DateTime @default(now())
+
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id])
+  installments Installment[]
+
+  @@index([invoiceId])
+  @@map("installment_plans")
+}
+
+model Installment {
+  id               String           @id @default(uuid())
+  installmentPlanId String
+  number           Int
+  amount           Decimal          @db.Decimal(12, 2)
+  dueDate          DateTime
+  status           InstallmentStatus @default(PENDING)
+  paymentId        String?          @unique
+
+  installmentPlan InstallmentPlan @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
+  payment         PaymentRecord?  @relation(fields: [paymentId], references: [id])
+
+  @@index([installmentPlanId])
+  @@index([dueDate])
+  @@map("installments")
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+// ─────────────────────────────────────────────────────────────
+// INSURANCE
+// ─────────────────────────────────────────────────────────────
+
+model InsurancePolicy {
+  id                 String   @id @default(uuid())
+  seniorId           String   @unique
+  provider           String
+  policyNumber       String
+  coveragePercentage Decimal  @db.Decimal(5, 2)
+  maxClaimableAmount Decimal  @db.Decimal(12, 2)
+  validUntil         DateTime
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  senior HealthProfile @relation(fields: [seniorId], references: [id])
+
+  @@index([seniorId])
+  @@index([policyNumber])
+  @@map("insurance_policies")
+}
+
+model InsuranceClaim {
+  id                  String             @id @default(uuid())
+  invoiceId           String
+  seniorId            String
+  policyNumber        String
+  insuranceProvider   String
+  claimedAmount       Decimal            @db.Decimal(12, 2)
+  approvedAmount      Decimal?           @db.Decimal(12, 2)
+  lineItems           Json?
+  status              InsuranceClaimStatus @default(SUBMITTED)
+  rejectionReason     String?
+  failureReason       String?
+  submissionReference String
+  submittedAt         DateTime           @default(now())
+  lastStatusUpdate    DateTime           @default(now())
+
+  invoice Invoice       @relation(fields: [invoiceId], references: [id])
+  senior  HealthProfile @relation(fields: [seniorId], references: [id])
+
+  @@index([invoiceId])
+  @@index([seniorId])
+  @@index([status])
+  @@map("insurance_claims")
+}
+
+enum InsuranceClaimStatus {
+  SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+  FAILED
+}
+
+// ─────────────────────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id             String           @id @default(uuid())
+  recipientId    String
+  type           NotificationType
+  category       NotificationCategory
+  content        Json
+  channels       DeliveryChannel[]
+  deliveryStatus Json
+  language       SupportedLanguage @default(EN)
+  createdAt      DateTime         @default(now())
+
+  recipient HealthProfile @relation(fields: [recipientId], references: [id])
+
+  @@index([recipientId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  APPOINTMENT_CONFIRMATION
+  APPOINTMENT_REMINDER
+  CRITICAL_ALERT
+  REPORT_AVAILABLE
+  FOLLOW_UP_REMINDER
+  PAYMENT_CONFIRMATION
+  ESCALATION
+}
+
+enum NotificationCategory {
+  CRITICAL
+  APPOINTMENT
+  INFORMATIONAL
+}
+
+enum DeliveryChannel {
+  SMS
+  EMAIL
+  PUSH
+  PHONE_CALL
+}
+
+model NotificationPreferences {
+  id               String          @id @default(uuid())
+  userId           String          @unique
+  activeChannels   DeliveryChannel[]
+  optOutNonCritical Boolean        @default(false)
+  quietHoursStart  String?
+  quietHoursEnd    String?
+
+  user HealthProfile @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+// ─────────────────────────────────────────────────────────────
+// CRITICAL ALERTS & ESCALATION
+// ─────────────────────────────────────────────────────────────
+
+model CriticalAlert {
+  id               String          @id @default(uuid())
+  testResultId     String
+  seniorId         String
+  physicianId      String
+  testName         String
+  resultValue      Float
+  criticalThreshold Float
+  sentAt           DateTime        @default(now())
+  acknowledgedAt   DateTime?
+  acknowledgedBy   String?
+  actionStatus     String?
+  escalationLevel  EscalationLevel @default(PHYSICIAN)
+
+  testResult       TestResult       @relation(fields: [testResultId], references: [id])
+  senior           HealthProfile    @relation(fields: [seniorId], references: [id])
+  physician        Physician        @relation(fields: [physicianId], references: [id])
+  escalationEvents EscalationEvent[]
+
+  @@index([testResultId])
+  @@index([seniorId])
+  @@index([physicianId])
+  @@index([escalationLevel])
+  @@map("critical_alerts")
+}
+
+enum EscalationLevel {
+  PHYSICIAN
+  DEPARTMENT_HEAD
+  FACILITY_ADMINISTRATOR
+}
+
+model EscalationEvent {
+  id              String          @id @default(uuid())
+  criticalAlertId String
+  level           EscalationLevel
+  escalatedAt     DateTime        @default(now())
+  acknowledgedAt  DateTime?
+  acknowledgedBy  String?
+
+  criticalAlert CriticalAlert @relation(fields: [criticalAlertId], references: [id], onDelete: Cascade)
+
+  @@index([criticalAlertId])
+  @@map("escalation_events")
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUDIT
+// ─────────────────────────────────────────────────────────────
+
+model AuditEntry {
+  id           String   @id @default(uuid())
+  userId       String
+  action       String
+  resourceType String
+  resourceId   String
+  timestamp    DateTime @default(now())
+  details      Json?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resourceType, resourceId])
+  @@index([timestamp])
+  @@map("audit_entries")
+}
+
+// ─────────────────────────────────────────────────────────────
+// PHYSICIANS
+// ─────────────────────────────────────────────────────────────
+
+model Physician {
+  id                 String   @id @default(uuid())
+  name               String
+  specialization     String
+  qualifications     String[]
+  department         String
+  availabilitySchedule Json?
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  timeSlots            TimeSlot[]
+  appointments         Appointment[]
+  checkupSessions      CheckupSession[]
+  specialistAssignments SpecialistAssignment[]
+  followUpActions      FollowUpAction[]
+  criticalAlerts       CriticalAlert[]
+
+  @@index([specialization])
+  @@index([isActive])
+  @@index([department])
+  @@map("physicians")
+}
+
+// ─────────────────────────────────────────────────────────────
+// DEVICE INTEGRATION - ENUMS
+// ─────────────────────────────────────────────────────────────
+
+enum DeviceDeviceType {
+  BLOOD_PRESSURE_MONITOR
+  GLUCOMETER
+  PULSE_OXIMETER
+  THERMOMETER
+  WEIGHT_SCALE
+}
+
+enum DeviceReadingType {
+  BLOOD_PRESSURE
+  BLOOD_GLUCOSE
+  HEART_RATE
+  SPO2
+  TEMPERATURE
+  WEIGHT
+}
+
+enum ConnectionProtocol {
+  BLUETOOTH
+  WIFI
+}
+
+enum AlertSeverity {
+  WARNING
+  CRITICAL
+}
+
+enum AlertDirection {
+  ABOVE
+  BELOW
+}
+
+// ─────────────────────────────────────────────────────────────
+// DEVICE INTEGRATION - MODELS
+// ─────────────────────────────────────────────────────────────
+
+model DeviceRegistry {
+  id                 String             @id @default(uuid())
+  serialNumber       String             @unique
+  deviceType         DeviceDeviceType
+  seniorId           String
+  registrationDate   DateTime           @default(now())
+  connectionProtocol ConnectionProtocol
+  isActive           Boolean            @default(true)
+  lastSyncTimestamp  DateTime?
+
+  senior         HealthProfile   @relation(fields: [seniorId], references: [id])
+  healthReadings HealthReading[]
+
+  @@index([seniorId])
+  @@map("device_registries")
+}
+
+model HealthReading {
+  id             String            @id @default(uuid())
+  deviceId       String
+  seniorId       String
+  dailyRecordId  String
+  readingType    DeviceReadingType
+  measuredValue  Decimal           @db.Decimal(10, 2)
+  secondaryValue Decimal?          @db.Decimal(10, 2)
+  unit           String
+  timestamp      DateTime
+  createdAt      DateTime          @default(now())
+
+  device      DeviceRegistry   @relation(fields: [deviceId], references: [id])
+  senior      HealthProfile    @relation(fields: [seniorId], references: [id])
+  dailyRecord DailyHealthRecord @relation(fields: [dailyRecordId], references: [id])
+  alert       ReadingAlert?
+
+  @@index([deviceId])
+  @@index([seniorId])
+  @@index([dailyRecordId])
+  @@index([readingType])
+  @@index([timestamp])
+  @@map("health_readings")
+}
+
+model DailyHealthRecord {
+  id             String   @id @default(uuid())
+  seniorId       String
+  recordDate     DateTime @db.Date
+  latestReadings Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  senior   HealthProfile   @relation(fields: [seniorId], references: [id])
+  readings HealthReading[]
+
+  @@unique([seniorId, recordDate])
+  @@index([seniorId])
+  @@index([recordDate])
+  @@map("daily_health_records")
+}
+
+model ReadingAlert {
+  id               String            @id @default(uuid())
+  seniorId         String
+  readingId        String            @unique
+  readingType      DeviceReadingType
+  measuredValue    Decimal           @db.Decimal(10, 2)
+  thresholdBreached Decimal          @db.Decimal(10, 2)
+  severity         AlertSeverity
+  direction        AlertDirection
+  createdAt        DateTime          @default(now())
+
+  senior  HealthProfile @relation(fields: [seniorId], references: [id])
+  reading HealthReading @relation(fields: [readingId], references: [id])
+
+  @@index([seniorId])
+  @@index([readingType])
+  @@index([severity])
+  @@map("reading_alerts")
+}
+
+model NormalRange {
+  id             String            @id @default(uuid())
+  readingType    DeviceReadingType
+  ageGroup       AgeGroup
+  criticalLow    Decimal           @db.Decimal(10, 2)
+  borderlineLow  Decimal           @db.Decimal(10, 2)
+  normalLow      Decimal           @db.Decimal(10, 2)
+  normalHigh     Decimal           @db.Decimal(10, 2)
+  borderlineHigh Decimal           @db.Decimal(10, 2)
+  criticalHigh   Decimal           @db.Decimal(10, 2)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([readingType, ageGroup])
+  @@map("normal_ranges")
+}
