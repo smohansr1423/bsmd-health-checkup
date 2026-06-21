@@ -194,19 +194,58 @@ export type { EventWiringDependencies } from './event-wiring';
 
 // --- Auto-start when run directly ---
 if (require.main === module) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const jwtSecret = process.env.JWT_SECRET || 'default-dev-secret-change-in-production';
+
   startGateway({
     auth: {
       validateToken: (token: string) => {
-        // Dev mode: accept any non-empty token and return mock user info
         if (!token) return null;
-        return {
-          token,
-          userId: 'dev-user',
-          role: 'Administrator' as const,
-          sessionId: 'dev-session',
-          issuedAt: new Date(),
-          expiresAt: new Date(Date.now() + 3600000),
-        };
+
+        if (isProduction) {
+          // Production mode: validate JWT token
+          try {
+            // Simple JWT validation (base64-decode payload)
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+
+            // Check expiration
+            if (payload.exp && Date.now() >= payload.exp * 1000) return null;
+
+            // Verify signature using HMAC-SHA256
+            const crypto = require('crypto');
+            const signatureInput = parts[0] + '.' + parts[1];
+            const expectedSignature = crypto
+              .createHmac('sha256', jwtSecret)
+              .update(signatureInput)
+              .digest('base64url');
+
+            if (parts[2] !== expectedSignature) return null;
+
+            return {
+              token,
+              userId: payload.sub || payload.userId,
+              role: payload.role || 'Senior_Citizen',
+              sessionId: payload.sessionId || `session-${payload.sub}`,
+              issuedAt: new Date(payload.iat * 1000),
+              expiresAt: new Date(payload.exp * 1000),
+            };
+          } catch {
+            return null;
+          }
+        } else {
+          // Dev mode: accept any non-empty token and return mock user info
+          return {
+            token,
+            userId: 'dev-user',
+            role: 'Administrator' as const,
+            sessionId: 'dev-session',
+            issuedAt: new Date(),
+            expiresAt: new Date(Date.now() + 3600000),
+          };
+        }
       },
       refreshSession: (_sessionId: string) => true,
     },
