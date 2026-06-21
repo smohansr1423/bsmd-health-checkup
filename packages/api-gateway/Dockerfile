@@ -1,5 +1,6 @@
-# Single-stage production build for Railway
+# Single-stage production build for Railway v3
 FROM node:20-alpine
+ARG CACHEBUST=1
 
 WORKDIR /app
 
