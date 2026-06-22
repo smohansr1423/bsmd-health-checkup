@@ -20,7 +20,7 @@ RUN npm ci --ignore-scripts
 # Build shared package first (frontend depends on it)
 RUN npx tsc -p packages/shared/tsconfig.json
 
-# Copy frontend source
+# Copy frontend source and config
 COPY packages/frontend/ packages/frontend/
 
 # Build Next.js
