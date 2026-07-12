@@ -81,8 +81,9 @@ describe('errorHandler', () => {
   });
 
   it('should hide error details in production', () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    const mutableEnv = process.env as Record<string, string | undefined>;
+    const originalEnv = mutableEnv.NODE_ENV;
+    mutableEnv.NODE_ENV = 'production';
 
     const err = new Error('secret internal details');
     const res = createMockRes();
@@ -92,7 +93,7 @@ describe('errorHandler', () => {
     expect(res.statusCode).toBe(500);
     expect((res.body as any).error.message).toBe('An unexpected error occurred. Please try again later.');
 
-    process.env.NODE_ENV = originalEnv;
+    mutableEnv.NODE_ENV = originalEnv;
   });
 });
 

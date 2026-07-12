@@ -7,7 +7,9 @@
     "packages/shared",
     "packages/services",
     "packages/api-gateway",
-    "packages/frontend"
+    "packages/frontend",
+    "packages/mobile-app",
+    "packages/desktop-app"
   ],
   "scripts": {
     "build": "npm run build --workspaces",

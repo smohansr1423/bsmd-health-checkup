@@ -52,6 +52,22 @@ import type {
 import type { HealthScore as SharedHealthScore } from '@health-checkup/shared';
 import type { AnalyticsDataProvider } from '@health-checkup/services';
 
+// --- API Copilot AI product domains (namespaced to stay cleanly separable) ---
+import {
+  accountAuth,
+  workspace,
+  planQuota,
+  knowledgeEngine,
+  queryEngine,
+  executionEngine,
+  apiCopilotAuthAssistant,
+  codeGenerator,
+  testingConsole,
+  conversation,
+  usageAnalytics,
+  apiCopilotShared,
+} from '@health-checkup/services';
+
 import { wireEventSubscriptions } from './event-wiring';
 
 /**
@@ -80,6 +96,25 @@ export interface ServiceRegistry {
   deviceIntegrationService: DeviceIntegrationService;
   normalRangeService: NormalRangeService;
   trendAnalyzer: TrendAnalyzer;
+
+  // --- API Copilot AI services ---
+  // Property names match the `ApiCopilotServices` contract the copilot routes
+  // read from `app.locals.services`. The usage-analytics service is exposed as
+  // `usageAnalyticsService` to avoid colliding with the health-checkup
+  // `analyticsService` (health analytics) above.
+  productEventBus: apiCopilotShared.ProductEventBus;
+  accountAuthService: accountAuth.AccountAuthService;
+  workspaceService: workspace.WorkspaceService;
+  planQuotaService: planQuota.PlanQuotaService;
+  knowledgeEngineService: knowledgeEngine.KnowledgeEngineService;
+  queryEngine: queryEngine.QueryEngine;
+  indexingService: queryEngine.IndexingService;
+  executionEngine: executionEngine.ExecutionEngine;
+  authAssistant: apiCopilotAuthAssistant.AuthAssistant;
+  codeGeneratorService: codeGenerator.CodeGeneratorService;
+  testingConsole: testingConsole.TestingConsole;
+  conversationService: conversation.ConversationService;
+  usageAnalyticsService: usageAnalytics.AnalyticsService;
 }
 
 /**
@@ -190,6 +225,113 @@ export function createServiceRegistry(): ServiceRegistry {
   // Trend Analyzer
   const trendAnalyzer = new TrendAnalyzer(readingsDataSource);
 
+  // ─── API Copilot AI product domains ────────────────────────────────────────
+  //
+  // Shared infrastructure: in-memory/fake vector store, embedding/LLM/crypto/HTTP
+  // providers (Req 1.1, 6.1, 16.1, 17.1) plus a product event bus for UsageEvents.
+  const infrastructure = apiCopilotShared.createInMemoryInfrastructure();
+  const productEventBus = new apiCopilotShared.InMemoryProductEventBus();
+
+  // In-memory repositories, shared across the domains that read/write them so
+  // cross-domain flows (upload → index → query → execute) observe one store.
+  const accountRepository = new apiCopilotShared.InMemoryAccountRepository();
+  const sessionRepository = new apiCopilotShared.InMemorySessionRepository();
+  const workspaceRepository = new apiCopilotShared.InMemoryWorkspaceRepository();
+  const quotaStateRepository = new apiCopilotShared.InMemoryQuotaStateRepository();
+  const apiVersionRepository = new apiCopilotShared.InMemoryApiVersionRepository();
+  const credentialRepository = new apiCopilotShared.InMemoryCredentialRepository();
+  const historyRepository = new apiCopilotShared.InMemoryHistoryRepository();
+  const conversationRepository = new apiCopilotShared.InMemoryConversationRepository();
+  const usageRepository = new apiCopilotShared.InMemoryUsageRepository();
+
+  // Account Auth — sign-up/sign-in and session lifecycle (Req 13).
+  const accountAuthService = new accountAuth.AccountAuthService({
+    accountRepository,
+    sessionRepository,
+  });
+
+  // Workspace — isolation + the shared access-control decision reused by the
+  // conversation and usage-analytics authorizers (Req 14).
+  const workspaceService = new workspace.WorkspaceService({ workspaceRepository });
+
+  // Plan & Quota — tier limits and query accounting (Req 17). Its methods back
+  // the knowledge-engine and query-engine injectable seams below.
+  const planQuotaService = new planQuota.PlanQuotaService({
+    accountRepository,
+    quotaStateRepository,
+  });
+
+  // Knowledge Engine — spec upload/versioning; the plan-quota gate is wired to
+  // PlanQuotaService.canAddApi so the tier API-count limit is enforced (Req 1, 2).
+  const knowledgeEngineService = new knowledgeEngine.KnowledgeEngineService({
+    apiVersionRepository,
+    planQuotaGate: planQuotaService,
+  });
+
+  // Auth Assistant — encrypted credential storage + token material (Req 6).
+  // Sole holder of the crypto provider.
+  const authAssistant = new apiCopilotAuthAssistant.AuthAssistant({
+    repository: credentialRepository,
+    cryptoProvider: infrastructure.cryptoProvider,
+  });
+
+  // Execution Engine — live calls; auth material comes from AuthAssistant.ensureToken
+  // via the AuthMaterialPort seam (Req 5, 6.2).
+  const executionEngineInstance = new executionEngine.ExecutionEngine({
+    apiVersionRepository,
+    httpClient: infrastructure.httpClient,
+    authProvider: authAssistant,
+  });
+
+  // Query Engine indexing — embeds extracted metadata into the vector store (Req 3.1).
+  const indexingService = new queryEngine.IndexingService({
+    embeddingProvider: infrastructure.embeddingProvider,
+    vectorStore: infrastructure.vectorStore,
+  });
+
+  // Conversation History — records Q&A entries; reuses WorkspaceService for the
+  // isolation decision on reads (Req 15).
+  const conversationService = new conversation.ConversationService({
+    conversationRepository,
+    workspaceAuthorizer: workspaceService,
+  });
+
+  // Query Engine — semantic search + RAG answering. Cross-domain seams:
+  // quotaReserver → PlanQuotaService.checkAndReserveQuery, conversationRecorder →
+  // ConversationService.record, productEventBus → the shared UsageEvent bus
+  // (Req 3, 4, 16.1, 17.4).
+  const queryEngineInstance = new queryEngine.QueryEngine({
+    embeddingProvider: infrastructure.embeddingProvider,
+    vectorStore: infrastructure.vectorStore,
+    llmProvider: infrastructure.llmProvider,
+    apiVersionRepository,
+    quotaReserver: planQuotaService,
+    conversationRecorder: conversationService,
+    productEventBus,
+  });
+
+  // Code Generator — renders client snippets from the selected version (Req 7).
+  const codeGeneratorService = new codeGenerator.CodeGeneratorService({
+    apiVersionRepository,
+  });
+
+  // Testing Console — wraps the Execution Engine instance and shares the history
+  // repository ring buffer (Req 8).
+  const testingConsoleInstance = new testingConsole.TestingConsole({
+    executionEngine: executionEngineInstance,
+    historyRepository,
+  });
+
+  // Usage Analytics — records UsageEvents from the shared product event bus and
+  // renders the dashboard; reuses WorkspaceService for the isolation decision
+  // (Req 16). Subscribing registers it as a UsageEvent consumer (Req 16.1, 16.2).
+  const usageAnalyticsService = new usageAnalytics.AnalyticsService({
+    usageRepository,
+    eventBus: productEventBus,
+    authorizer: workspaceService,
+  });
+  usageAnalyticsService.subscribe();
+
   // --- Wire event subscriptions for inter-service communication ---
   wireEventSubscriptions(eventBus, {
     riskAssessmentEngine,
@@ -218,6 +360,21 @@ export function createServiceRegistry(): ServiceRegistry {
     deviceIntegrationService,
     normalRangeService,
     trendAnalyzer,
+
+    // --- API Copilot AI services (keys match the ApiCopilotServices contract) ---
+    productEventBus,
+    accountAuthService,
+    workspaceService,
+    planQuotaService,
+    knowledgeEngineService,
+    queryEngine: queryEngineInstance,
+    indexingService,
+    executionEngine: executionEngineInstance,
+    authAssistant,
+    codeGeneratorService,
+    testingConsole: testingConsoleInstance,
+    conversationService,
+    usageAnalyticsService,
   };
 }
 

@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true,
+    "jsx": "react-native",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@health-checkup/shared": ["../shared/src"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", "App.tsx", "app.config.ts"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "../shared" }
+  ]
+}

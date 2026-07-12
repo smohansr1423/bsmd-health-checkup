@@ -12,11 +12,12 @@ import { execSync } from 'child_process';
 import path from 'path';
 import {
   createGatewayAuthMiddleware,
+  createTlsEnforcement,
   errorHandler,
   notFoundHandler,
   startRateLimitCleanup,
 } from './middleware';
-import type { AuthMiddlewareConfig } from './middleware';
+import type { AuthMiddlewareConfig, TlsEnforcementConfig } from './middleware';
 import {
   authRoutes,
   registrationRoutes,
@@ -29,6 +30,19 @@ import {
   analyticsRoutes,
   notificationsRoutes,
   deviceReadingsRoutes,
+  healthRoutes,
+  privacyRoutes,
+  apiCopilotAccountAuthRoutes,
+  apiCopilotWorkspaceRoutes,
+  apiCopilotPlanQuotaRoutes,
+  apiCopilotKnowledgeEngineRoutes,
+  apiCopilotQueryEngineRoutes,
+  apiCopilotExecutionEngineRoutes,
+  apiCopilotAuthAssistantRoutes,
+  apiCopilotCodeGeneratorRoutes,
+  apiCopilotTestingConsoleRoutes,
+  apiCopilotConversationRoutes,
+  apiCopilotUsageAnalyticsRoutes,
 } from './routes';
 import { createServiceRegistry } from './service-registry';
 
@@ -39,6 +53,8 @@ export interface GatewayConfig {
   port?: number;
   /** CORS origin (default: *) */
   corsOrigin?: string;
+  /** TLS enforcement configuration (defaults: enabled in production) */
+  tls?: TlsEnforcementConfig;
 }
 
 /**
@@ -52,6 +68,11 @@ export function createGatewayApp(config: GatewayConfig) {
   app.locals.services = services;
 
   // --- Global middleware ---
+
+  // TLS enforcement — refuse unencrypted connections before any data is read
+  // or transmitted (Req 18.2, 18.3). Runs first so plaintext requests are
+  // rejected up front.
+  app.use(createTlsEnforcement(config.tls));
 
   // CORS headers
   app.use((_req: Request, res: Response, next: NextFunction) => {
@@ -77,27 +98,15 @@ export function createGatewayApp(config: GatewayConfig) {
     next();
   });
 
-  // Health check (public) — returns service status and database connectivity
-  app.get('/health', (_req: Request, res: Response) => {
-    const databaseUrl = process.env.DATABASE_URL;
-    const dbStatus = databaseUrl ? 'configured' : 'not_configured';
-
-    res.json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      db: {
-        status: dbStatus,
-        connected: !!databaseUrl,
-      },
-      env: {
-        port: process.env.PORT || '3000',
-        corsOrigin: process.env.CORS_ORIGIN || '*',
-      },
-    });
-  });
+  // Health check (public) — underpins the availability measurement (Req 19.1)
+  app.use('/health', healthRoutes);
 
   // --- Public routes (no auth required) ---
   app.use('/api/auth', authRoutes);
+
+  // API Copilot AI account sign-up/sign-in establish authentication, so they
+  // are public and must be mounted before the gateway auth middleware.
+  app.use('/api/copilot/account', apiCopilotAccountAuthRoutes);
 
   // --- Protected routes (auth required) ---
   const authMiddleware = createGatewayAuthMiddleware(config.auth);
@@ -114,6 +123,24 @@ export function createGatewayApp(config: GatewayConfig) {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/notifications', notificationsRoutes);
   app.use('/api/device-readings', deviceReadingsRoutes);
+
+  // Personal-data deletion (auth required) — confirms completion within 30 days (Req 18.7)
+  app.use('/api/privacy', privacyRoutes);
+
+  // --- API Copilot AI domain routes (protected; auth enforced by /api guard) ---
+  // Each domain is mounted under /api/copilot/*, protected by the auth
+  // middleware above plus per-route createRoleGuard. Domain errors are mapped
+  // to their HTTP status by the shared api-copilot-support mapper.
+  app.use('/api/copilot/workspaces', apiCopilotWorkspaceRoutes);
+  app.use('/api/copilot/plan-quota', apiCopilotPlanQuotaRoutes);
+  app.use('/api/copilot/knowledge-engine', apiCopilotKnowledgeEngineRoutes);
+  app.use('/api/copilot/query-engine', apiCopilotQueryEngineRoutes);
+  app.use('/api/copilot/execution-engine', apiCopilotExecutionEngineRoutes);
+  app.use('/api/copilot/auth-assistant', apiCopilotAuthAssistantRoutes);
+  app.use('/api/copilot/code-generator', apiCopilotCodeGeneratorRoutes);
+  app.use('/api/copilot/testing-console', apiCopilotTestingConsoleRoutes);
+  app.use('/api/copilot/conversations', apiCopilotConversationRoutes);
+  app.use('/api/copilot/usage-analytics', apiCopilotUsageAnalyticsRoutes);
 
   // --- Error handling ---
   app.use(notFoundHandler);

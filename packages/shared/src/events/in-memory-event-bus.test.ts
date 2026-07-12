@@ -350,8 +350,7 @@ describe('InMemoryEventBus', () => {
 
             localBus.clear();
           }
-        ),
-        { numRuns: 50 }
+        )
       );
     });
 
@@ -399,8 +398,7 @@ describe('InMemoryEventBus', () => {
 
             localBus.clear();
           }
-        ),
-        { numRuns: 50 }
+        )
       );
     });
 
@@ -445,8 +443,7 @@ describe('InMemoryEventBus', () => {
 
             localBus.clear();
           }
-        ),
-        { numRuns: 50 }
+        )
       );
     });
   });

@@ -1,0 +1,70 @@
+# electron-builder configuration for API Copilot Desktop
+# Requirement 19.1: distributable installers for Windows, macOS, and Linux.
+# Requirement 19.2: an installed app launches to the sign-in view or the
+#   restored authenticated home view (the renderer entry loaded by
+#   dist/main/main.js runs the startup router to choose the first view).
+#
+# The TypeScript sources are compiled by `npm run build` (tsc) into ./dist,
+# with the Electron main entry at dist/main/main.js (see package.json "main").
+# Packaging (`npm run dist`) consumes that compiled output only.
+
+appId: com.healthcheckup.apicopilot.desktop
+productName: API Copilot Desktop
+copyright: Copyright © API Copilot
+
+# Where compiled JS is expected. Packaging does not run tsc; run `npm run build`
+# (or `npm run build --workspaces`) first so ./dist exists.
+directories:
+  # Icons and other packaging resources (installer background, entitlements, etc.).
+  buildResources: build
+  # Emitted installers/artifacts.
+  output: release
+
+# Only ship the compiled output and runtime manifest — never TypeScript sources,
+# tests, or tsconfig. Renderer HTML/assets emitted alongside JS under dist are
+# included by the dist glob.
+files:
+  - dist/**/*
+  - package.json
+  - "!**/*.ts"
+  - "!**/*.tsx"
+  - "!**/*.map"
+  - "!**/*.test.*"
+  - "!**/*.property.test.*"
+  - "!**/__tests__/**"
+
+# node_modules resolution for the workspace-hoisted monorepo layout.
+nodeGypRebuild: false
+npmRebuild: false
+
+# ---- Windows ----
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+# ---- macOS ----
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+dmg:
+  title: ${productName} ${version}
+
+# ---- Linux ----
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
+  artifactName: ${productName}-${version}-${arch}.${ext}

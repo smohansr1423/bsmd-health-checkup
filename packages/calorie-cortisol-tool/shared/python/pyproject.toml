@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "cc-contracts"
+version = "0.1.0"
+description = "Shared domain types and API contracts (Python mirror) for the Calorie & Cortisol Tool"
+authors = ["Calorie & Cortisol Tool Team"]
+packages = [{ include = "cc_contracts" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2"
+hypothesis = "^6.100"
+ruff = "^0.4"
+black = "^24.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.black]
+line-length = 100

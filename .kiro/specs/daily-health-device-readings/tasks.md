@@ -32,13 +32,13 @@ This implementation plan breaks the Daily Health Device Readings feature into in
     - Implement `getDevice()` and `getDevicesBySenior()` query methods
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-  - [ ]* 2.2 Write property tests for device registration
+  - [ ] 2.2 Write property tests for device registration
     - **Property 1: Device registration produces a complete registry entry**
     - **Property 2: Device serial number uniqueness across seniors**
     - **Property 3: Deregistered devices reject subsequent readings**
     - **Validates: Requirements 1.1, 1.3, 1.4, 1.5**
 
-  - [ ]* 2.3 Write unit tests for device registration edge cases
+  - [ ] 2.3 Write unit tests for device registration edge cases
     - Test all 5 device types register successfully
     - Test both connection protocols (bluetooth, wifi)
     - Test conflict error on duplicate serial number to different senior
@@ -62,14 +62,14 @@ This implementation plan breaks the Daily Health Device Readings feature into in
     - Ensure parse(format(reading)) produces an equivalent object
     - _Requirements: 10.1, 10.3_
 
-  - [ ]* 3.3 Write property tests for reading validation and serialization
+  - [ ] 3.3 Write property tests for reading validation and serialization
     - **Property 4: Health Reading parse-format round trip**
     - **Property 5: Invalid payload produces field-level validation errors**
     - **Property 8: Timestamp boundary enforcement**
     - **Property 9: Plausible range enforcement**
     - **Validates: Requirements 2.1, 2.6, 10.1, 10.2, 10.3, 10.4**
 
-  - [ ]* 3.4 Write unit tests for Device Gateway
+  - [ ] 3.4 Write unit tests for Device Gateway
     - Test each of the 6 valid reading type + unit pairs accepted
     - Test blood pressure with systolic=120, diastolic=80 stored correctly
     - Test boundary timestamp values (exactly 24h ago accepted, 24h+1ms rejected)
@@ -87,7 +87,7 @@ This implementation plan breaks the Daily Health Device Readings feature into in
     - Implement `getDailyRecord()` and `getDailyRecords()` with readings grouped by type
     - _Requirements: 2.2, 2.3, 3.1, 3.2, 3.3, 3.4, 7.1_
 
-  - [ ]* 5.2 Write property tests for reading ingestion and daily records
+  - [ ] 5.2 Write property tests for reading ingestion and daily records
     - **Property 6: Valid reading storage with daily record association**
     - **Property 7: Blood pressure readings store both values**
     - **Property 10: Daily record query returns all readings grouped by type**
@@ -104,11 +104,11 @@ This implementation plan breaks the Daily Health Device Readings feature into in
     - Wire alert evaluation into the ingestion flow in DeviceIntegrationService
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [ ]* 6.2 Write property tests for alert classification
+  - [ ] 6.2 Write property tests for alert classification
     - **Property 12: Alert classification correctness**
     - **Validates: Requirements 4.2, 4.3, 4.4**
 
-  - [ ]* 6.3 Write unit tests for alert engine edge cases
+  - [ ] 6.3 Write unit tests for alert engine edge cases
     - Test critical alert generated for value below critical low
     - Test critical alert generated for value above critical high
     - Test warning alert for borderline values
@@ -125,7 +125,7 @@ This implementation plan breaks the Daily Health Device Readings feature into in
     - Implement default Normal Range seeding for all supported reading types
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [ ]* 7.2 Write property tests for normal range configuration
+  - [ ] 7.2 Write property tests for normal range configuration
     - **Property 13: Normal range ordering validation**
     - **Property 14: Normal range updates are non-retroactive**
     - **Validates: Requirements 5.1, 5.2, 5.4**
@@ -137,7 +137,7 @@ This implementation plan breaks the Daily Health Device Readings feature into in
     - Implement `getTrendDirection()`: compare recent readings against previous period to determine improving/stable/declining
     - _Requirements: 6.1_
 
-  - [ ]* 8.2 Write property tests for trend computation
+  - [ ] 8.2 Write property tests for trend computation
     - **Property 15: Trend computation mathematical correctness**
     - **Validates: Requirements 6.1**
 
@@ -151,7 +151,7 @@ This implementation plan breaks the Daily Health Device Readings feature into in
     - Return `syncStatus` field ('synced' | 'stale' | 'inactive') in device queries
     - _Requirements: 7.1, 7.2, 7.3_
 
-  - [ ]* 10.2 Write property tests for stale device detection
+  - [ ] 10.2 Write property tests for stale device detection
     - **Property 18: Stale device detection during daytime hours**
     - **Validates: Requirements 7.3**
 
@@ -183,11 +183,11 @@ This implementation plan breaks the Daily Health Device Readings feature into in
     - Wire DeviceIntegrationService into the service registry
     - _Requirements: 8.1, 8.2, 8.3_
 
-  - [ ]* 11.4 Write property tests for pagination
+  - [ ] 11.4 Write property tests for pagination
     - **Property 19: Pagination enforcement**
     - **Validates: Requirements 8.4**
 
-  - [ ]* 11.5 Write integration tests for API routes
+  - [ ] 11.5 Write integration tests for API routes
     - Test auth middleware rejects unauthenticated requests with 401
     - Test role guard rejects unauthorized roles with 403
     - Test full ingestion flow: register device → submit reading → verify storage
@@ -226,11 +226,11 @@ This implementation plan breaks the Daily Health Device Readings feature into in
     - Responsive card-based layout
     - _Requirements: 6.2, 6.5, 6.6_
 
-  - [ ]* 13.5 Write property tests for color coding logic
+  - [ ] 13.5 Write property tests for color coding logic
     - **Property 16: Color coding maps correctly to range classification**
     - **Validates: Requirements 6.4**
 
-  - [ ]* 13.6 Write component tests for dashboard
+  - [ ] 13.6 Write component tests for dashboard
     - Test VitalSignCard renders correctly with all reading types
     - Test DeviceStatusPanel shows stale indicator
     - Test polling interval configured at 60 seconds

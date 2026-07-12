@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "incremental": false,
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@calorie-cortisol/shared": ["shared/src"],
+      "@calorie-cortisol/shared/*": ["shared/src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist", "clients/ios", "clients/android"]
+}

@@ -1,0 +1,78 @@
+# CI wiring stub for the Calorie & Cortisol Tool sub-monorepo.
+#
+# Runs each package's test suite per language toolchain:
+#   - Node/TS (gateway, cortisol-data, notification, clients/pwa, clients/shared,
+#     shared) -> Jest + fast-check
+#   - Python (food-vision, nutrition-lookup, insights-ml) -> Poetry + pytest + Hypothesis
+#   - Go (user-profile) -> go test + gopter
+#
+# This is a scaffolding stub established in task 1.1. Individual package logic and
+# richer pipeline steps (lint gates, coverage upload, deploy) are added in later tasks.
+name: calorie-cortisol-tool
+
+on:
+  push:
+    paths:
+      - 'packages/calorie-cortisol-tool/**'
+      - '.github/workflows/calorie-cortisol-tool.yml'
+  pull_request:
+    paths:
+      - 'packages/calorie-cortisol-tool/**'
+      - '.github/workflows/calorie-cortisol-tool.yml'
+
+defaults:
+  run:
+    working-directory: packages/calorie-cortisol-tool
+
+jobs:
+  node:
+    name: Node/TS packages (Jest + fast-check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install
+      - name: Build (tsc project references)
+        run: npm run build
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+
+  python:
+    name: Python service (Poetry + Hypothesis)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [food-vision, nutrition-lookup, insights-ml]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install dependencies
+        working-directory: packages/calorie-cortisol-tool/services/${{ matrix.service }}
+        run: poetry install --no-root
+      - name: Test
+        working-directory: packages/calorie-cortisol-tool/services/${{ matrix.service }}
+        run: poetry run pytest
+
+  go:
+    name: Go service (gopter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Tidy modules
+        working-directory: packages/calorie-cortisol-tool/services/user-profile
+        run: go mod tidy
+      - name: Test
+        working-directory: packages/calorie-cortisol-tool/services/user-profile
+        run: go test ./...

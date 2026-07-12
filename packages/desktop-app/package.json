@@ -1,0 +1,30 @@
+{
+  "name": "@health-checkup/desktop-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API Copilot Desktop - cross-platform Electron client for the API Copilot AI backend",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "tsc",
+    "predist": "npm run build",
+    "dist": "electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "start": "electron .",
+    "test": "jest --config ../../jest.config.ts --testPathPattern=packages/desktop-app",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@health-checkup/services": "*",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  }
+}

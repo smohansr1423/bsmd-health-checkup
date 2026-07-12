@@ -1,0 +1,19 @@
+{
+  "name": "@calorie-cortisol/notification",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Notification Service (Node/TS + SNS/FCM + SQS) for the Calorie & Cortisol Tool",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --passWithNoTests",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@calorie-cortisol/shared": "*"
+  },
+  "devDependencies": {
+    "fast-check": "^3.15.0"
+  }
+}

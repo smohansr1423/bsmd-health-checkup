@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const API = 'http://localhost:3000';
+const API = process.env.NEXT_PUBLIC_API_URL || '';
 const HEADERS = { Authorization: 'Bearer dev-token-123', 'Content-Type': 'application/json' };
 
 export default function DashboardPage() {

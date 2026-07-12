@@ -1,0 +1,133 @@
+{
+  "index_patterns": ["food-items-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 6,
+      "number_of_replicas": 1,
+      "refresh_interval": "30s",
+      "max_result_window": 10000,
+      "analysis": {
+        "filter": {
+          "food_edge_ngram": {
+            "type": "edge_ngram",
+            "min_gram": 2,
+            "max_gram": 20
+          },
+          "food_synonyms": {
+            "type": "synonym_graph",
+            "lenient": true,
+            "synonyms": [
+              "soda, pop, soft drink",
+              "fries, chips, french fries",
+              "aubergine, eggplant",
+              "coriander, cilantro",
+              "prawn, shrimp"
+            ]
+          }
+        },
+        "analyzer": {
+          "food_name_index": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": ["lowercase", "asciifolding", "food_edge_ngram"]
+          },
+          "food_name_search": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": ["lowercase", "asciifolding", "food_synonyms"]
+          }
+        },
+        "normalizer": {
+          "lowercase_keyword": {
+            "type": "custom",
+            "filter": ["lowercase", "asciifolding"]
+          }
+        }
+      }
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "food_id": {
+          "type": "keyword"
+        },
+        "name": {
+          "type": "text",
+          "analyzer": "food_name_index",
+          "search_analyzer": "food_name_search",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "normalizer": "lowercase_keyword",
+              "ignore_above": 256
+            },
+            "suggest": {
+              "type": "search_as_you_type",
+              "max_shingle_size": 3
+            }
+          }
+        },
+        "brand": {
+          "type": "text",
+          "analyzer": "food_name_search",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "normalizer": "lowercase_keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "aliases": {
+          "type": "text",
+          "analyzer": "food_name_index",
+          "search_analyzer": "food_name_search"
+        },
+        "category": {
+          "type": "keyword"
+        },
+        "barcodes": {
+          "type": "keyword"
+        },
+        "data_source": {
+          "type": "keyword"
+        },
+        "locale": {
+          "type": "keyword"
+        },
+        "serving_size_g": {
+          "type": "float"
+        },
+        "nutrients": {
+          "type": "object",
+          "properties": {
+            "calories_kcal": { "type": "float" },
+            "protein_g": { "type": "float" },
+            "carbs_g": { "type": "float" },
+            "fat_g": { "type": "float" },
+            "fiber_g": { "type": "float" },
+            "sugar_g": { "type": "float" },
+            "sodium_mg": { "type": "float" }
+          }
+        },
+        "popularity": {
+          "type": "rank_feature"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "date"
+        },
+        "updated_at": {
+          "type": "date"
+        }
+      }
+    }
+  },
+  "_meta": {
+    "app": "calorie-cortisol-tool",
+    "purpose": "Fuzzy food search over 2M+ items within 5s (Req 7.7).",
+    "notes": "edge_ngram index analyzer + synonym-graph search analyzer support typo-tolerant, prefix, and synonym matching. Query-time fuzziness (AUTO) is applied by the Nutrition Lookup service; rank_feature 'popularity' boosts common foods."
+  }
+}

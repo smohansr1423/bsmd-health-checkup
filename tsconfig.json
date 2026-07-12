@@ -22,7 +22,9 @@
       "@health-checkup/shared": ["packages/shared/src"],
       "@health-checkup/services": ["packages/services/src"],
       "@health-checkup/api-gateway": ["packages/api-gateway/src"],
-      "@health-checkup/frontend": ["packages/frontend/src"]
+      "@health-checkup/frontend": ["packages/frontend/src"],
+      "@health-checkup/mobile-app": ["packages/mobile-app/src"],
+      "@health-checkup/desktop-app": ["packages/desktop-app/src"]
     }
   },
   "exclude": ["node_modules", "dist", "**/node_modules", "**/dist"]

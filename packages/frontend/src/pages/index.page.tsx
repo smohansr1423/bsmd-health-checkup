@@ -4,10 +4,11 @@ export default function HomePage() {
   const [healthStatus, setHealthStatus] = useState<string>('Checking...');
 
   useEffect(() => {
-    fetch('http://localhost:3000/health')
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    fetch(`${apiUrl}/health`)
       .then((r) => r.json())
       .then((data) => setHealthStatus(`✅ API is ${data.status} (${data.timestamp})`))
-      .catch(() => setHealthStatus('❌ API not reachable — make sure the gateway is running on port 3000'));
+      .catch(() => setHealthStatus('❌ API not reachable — make sure the gateway is running'));
   }, []);
 
   return (

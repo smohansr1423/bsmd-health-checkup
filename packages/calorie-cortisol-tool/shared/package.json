@@ -1,0 +1,16 @@
+{
+  "name": "@calorie-cortisol/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared domain types and API contracts for the Calorie & Cortisol Tool (TS source of truth)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --passWithNoTests",
+    "lint": "eslint src --ext .ts"
+  },
+  "devDependencies": {
+    "fast-check": "^3.15.0"
+  }
+}

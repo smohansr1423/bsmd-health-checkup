@@ -7,3 +7,5 @@ export type { AuthMiddlewareConfig, TokenValidatorFn, SessionRefresherFn } from 
 export { createRateLimiter, startRateLimitCleanup, stopRateLimitCleanup, clearRateLimitStore } from './rate-limiter';
 export { errorHandler, notFoundHandler, AppError, badRequest, notFound, conflict, validationError, serviceUnavailable } from './error-handler';
 export { createRequestValidator, commonSchemas } from './request-validator';
+export { createTlsEnforcement, isConnectionSecure } from './tls-enforcement';
+export type { TlsEnforcementConfig } from './tls-enforcement';

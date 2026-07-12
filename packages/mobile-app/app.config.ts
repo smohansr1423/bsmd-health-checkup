@@ -1,0 +1,52 @@
+import { ExpoConfig, ConfigContext } from 'expo/config';
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...config,
+  name: 'Health Checkup',
+  slug: 'health-checkup-mobile',
+  version: '1.0.0',
+  orientation: 'portrait',
+  icon: './assets/icon.png',
+  userInterfaceStyle: 'light',
+  newArchEnabled: true,
+  splash: {
+    image: './assets/splash-icon.png',
+    resizeMode: 'contain',
+    backgroundColor: '#ffffff',
+  },
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: 'com.healthcheckup.mobile',
+    infoPlist: {
+      MinimumOSVersion: '15.0',
+    },
+  },
+  android: {
+    adaptiveIcon: {
+      foregroundImage: './assets/adaptive-icon.png',
+      backgroundColor: '#ffffff',
+    },
+    package: 'com.healthcheckup.mobile',
+  },
+  plugins: [
+    [
+      'expo-notifications',
+      {
+        icon: './assets/notification-icon.png',
+        color: '#ffffff',
+      },
+    ],
+    [
+      'expo-build-properties',
+      {
+        android: {
+          minSdkVersion: 26,
+        },
+        ios: {
+          deploymentTarget: '15.0',
+        },
+      },
+    ],
+  ],
+  scheme: 'healthcheckup',
+});

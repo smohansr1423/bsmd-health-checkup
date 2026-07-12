@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": [],
+  "references": [
+    { "path": "./shared" },
+    { "path": "./gateway" },
+    { "path": "./services/cortisol-data" },
+    { "path": "./services/notification" },
+    { "path": "./clients/pwa" },
+    { "path": "./clients/shared" }
+  ]
+}

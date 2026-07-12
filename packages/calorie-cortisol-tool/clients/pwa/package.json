@@ -1,0 +1,20 @@
+{
+  "name": "@calorie-cortisol/client-pwa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Progressive Web App client (React/TS + Service Worker + WebRTC) for the Calorie & Cortisol Tool",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --passWithNoTests",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@calorie-cortisol/client-shared": "*",
+    "@calorie-cortisol/shared": "*"
+  },
+  "devDependencies": {
+    "fast-check": "^3.15.0"
+  }
+}

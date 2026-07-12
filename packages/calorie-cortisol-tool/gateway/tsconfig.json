@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@calorie-cortisol/shared": ["../shared/dist"],
+      "@calorie-cortisol/shared/*": ["../shared/dist/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [{ "path": "../shared" }]
+}

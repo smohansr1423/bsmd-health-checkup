@@ -1,0 +1,18 @@
+{
+  "extends": ["../../.eslintrc.json"],
+  "parserOptions": {
+    "project": "./tsconfig.jest.json"
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "coverage",
+    "*.js",
+    "clients/ios",
+    "clients/android",
+    "services/food-vision",
+    "services/nutrition-lookup",
+    "services/insights-ml",
+    "services/user-profile"
+  ]
+}

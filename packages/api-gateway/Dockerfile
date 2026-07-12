@@ -4,6 +4,9 @@ ARG CACHEBUST=1
 
 WORKDIR /app
 
+# Prisma on Alpine (musl) needs OpenSSL present to detect libssl and load the query engine
+RUN apk add --no-cache openssl libc6-compat
+
 # Copy package files first for better layer caching
 COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
@@ -37,9 +40,9 @@ RUN npx tsc -p packages/api-gateway/tsconfig.json
 ENV PORT=3000
 EXPOSE 3000
 
-# Health check
+# Health check (uses the runtime PORT, which Railway injects)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider "http://localhost:${PORT:-3000}/health" || exit 1
 
 # Start
 CMD ["node", "packages/api-gateway/dist/index.js"]

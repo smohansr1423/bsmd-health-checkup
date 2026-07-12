@@ -1,0 +1,26 @@
+{
+  "name": "@calorie-cortisol/root",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Calorie & Cortisol Tool — monorepo root (six microservices, gateway, clients, shared contracts)",
+  "workspaces": [
+    "shared",
+    "gateway",
+    "services/cortisol-data",
+    "services/notification",
+    "clients/pwa",
+    "clients/shared"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "test": "jest --passWithNoTests",
+    "test:node": "jest --passWithNoTests",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\""
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
