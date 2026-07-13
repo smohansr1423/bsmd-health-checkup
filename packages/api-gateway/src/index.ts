@@ -44,6 +44,7 @@ import {
   apiCopilotConversationRoutes,
   apiCopilotUsageAnalyticsRoutes,
   calorieCortisolRoutes,
+  calorieCortisolPublicRoutes,
 } from './routes';
 import { createServiceRegistry } from './service-registry';
 import { createGatewayAuth } from './auth/gateway-auth';
@@ -112,6 +113,11 @@ export function createGatewayApp(config: GatewayConfig) {
   // API Copilot AI account sign-up/sign-in establish authentication, so they
   // are public and must be mounted before the gateway auth middleware.
   app.use('/api/copilot/account', apiCopilotAccountAuthRoutes);
+
+  // Calorie & Cortisol liveness check is public (like the top-level /health),
+  // mounted before the auth guard so it can be probed without a token. The CC
+  // functional routes remain protected (mounted after the auth guard below).
+  app.use('/api/cc', calorieCortisolPublicRoutes);
 
   // --- Protected routes (auth required) ---
   const authMiddleware = createGatewayAuthMiddleware(config.auth);
