@@ -70,9 +70,9 @@ var DefaultLegalRetentionPolicy = LegalRetentionPolicy{
 // delete and categories to retain under a legal obligation. It is computed
 // before any mutation so the commit step is a single all-or-nothing operation.
 type DeletionPlan struct {
-	UserID    string
-	Deleted   []PersonalDataCategory
-	Retained  []RetainedCategory
+	UserID   string
+	Deleted  []PersonalDataCategory
+	Retained []RetainedCategory
 	// ConfirmedAt is when the deletion was confirmed.
 	ConfirmedAt time.Time
 	// CompleteBy is the 30-day completion deadline (Req 20.5).
@@ -81,11 +81,11 @@ type DeletionPlan struct {
 
 // DeletionResult is the outcome reported to the user once a deletion commits.
 type DeletionResult struct {
-	UserID     string             `json:"userId"`
-	Deleted    []PersonalDataCategory `json:"deletedCategories"`
-	Retained   []RetainedCategory `json:"retainedCategories"`
-	ConfirmedAt time.Time         `json:"confirmedAt"`
-	CompleteBy time.Time          `json:"completeBy"`
+	UserID      string                 `json:"userId"`
+	Deleted     []PersonalDataCategory `json:"deletedCategories"`
+	Retained    []RetainedCategory     `json:"retainedCategories"`
+	ConfirmedAt time.Time              `json:"confirmedAt"`
+	CompleteBy  time.Time              `json:"completeBy"`
 }
 
 // PlanDeletion validates the request and partitions the user's data into

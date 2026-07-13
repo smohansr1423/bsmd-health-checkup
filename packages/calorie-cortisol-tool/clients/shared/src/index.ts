@@ -37,6 +37,16 @@ export * from './food-flow';
 // logic stays pure and testable (Req 6.1–6.7).
 export * from './history';
 
+// Meal correction and totals recomputation (Task 14.7): pure, deterministic
+// `applyCorrection(mealId, op)` supporting portion multipliers (0.25×–3× in
+// 0.25 steps), ingredient swap, add-by-text/barcode, and delete, recomputing
+// the meal's totals as the exact sum of the current items after every change.
+// A no-match text/barcode lookup leaves the meal unchanged, and deleting the
+// last remaining item yields zero totals. The Nutrition Lookup resolver and
+// meal store are injectable ports so the logic is pure and testable (Req 5.1,
+// 5.2, 5.3, 5.4, 5.6, 5.7).
+export * from './correction';
+
 // Personalization training-record queue (Task 14.10): records every applied
 // meal correction as a training input for the Personalization_Model, and on
 // delivery failure retains the record locally and queues it for retry so every
@@ -45,6 +55,18 @@ export * from './history';
 // depends on. Delivery and durable storage are injectable ports so the queue
 // logic is pure and testable (Req 5.5, 5.8).
 export * from './personalization';
+
+// Offline mode — on-device inference, "inference pending" status, and the
+// consent-aware sync engine (Task 14.16): `OfflineCapture.inferLocal` runs the
+// on-device model with a 10s pending fallback and stores the capture in the
+// local Data Vault (rejecting below the 50 MB free-space minimum, retaining
+// prior records); `SyncEngine.push` synchronizes, on reconnect, exactly the
+// consent-permitted records within 60s, bounds retries to 3 (retaining the
+// record unsynced on exhaustion), and on a conflict retains both versions and
+// applies the settings-defined deterministic resolution. Inference, the 10s
+// timer, the cloud transport, and the clock are injectable ports so the logic
+// is pure and testable (Req 17.2, 27.1, 27.2, 27.3, 27.4, 27.5, 27.6).
+export * from './offline';
 
 // Biometric access gate (Task 14.19): pure, deterministic gate that hides
 // health data on app open / resume-after-≥60s until an authentication

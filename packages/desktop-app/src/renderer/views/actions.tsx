@@ -15,7 +15,7 @@
  */
 
 import React, { createContext, useContext } from 'react';
-import type { RequestDescriptor } from '../app-client/types';
+import type { RequestDescriptor, UiOutcome } from '../app-client/types';
 import type { ViewId } from '../state/types';
 
 /** A single request the view wants sent through the broker. */

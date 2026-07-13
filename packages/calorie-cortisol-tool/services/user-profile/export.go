@@ -129,10 +129,10 @@ func (a ExportArtifact) CoversAllCategories(data PersonalData) bool {
 
 // exportDocument is the on-disk shape of the JSON export.
 type exportDocument struct {
-	UserID      string                     `json:"userId"`
-	GeneratedAt string                     `json:"generatedAt"`
-	Format      string                     `json:"format"`
-	Data        map[string][]Record        `json:"data"`
+	UserID      string              `json:"userId"`
+	GeneratedAt string              `json:"generatedAt"`
+	Format      string              `json:"format"`
+	Data        map[string][]Record `json:"data"`
 }
 
 // ExportAvailabilityWindow is the maximum time an export may take to become

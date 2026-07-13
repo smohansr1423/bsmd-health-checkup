@@ -1,3 +1,5 @@
+import fc from 'fast-check';
+import type { Sex, TimeOfDayBucket } from '@calorie-cortisol/shared';
 import {
   classifyAgainstRange,
   contextualizeReading,
@@ -75,5 +77,69 @@ describe('contextualizeReading (Req 8.5)', () => {
   it('classifies a near-zero value as below', () => {
     const ctx = contextualizeReading(0.01, 'morning', { age: 30, sex: 'M' });
     expect(ctx?.classification).toBe('below');
+  });
+});
+
+/**
+ * Feature: calorie-cortisol-tool, Property 21
+ *
+ * Property 21: Reference-range contextualization.
+ * For any ingested reading with the user's age and sex available, the reading
+ * is classified below/normal/above using the reference range appropriate to the
+ * user's age band, sex, and time-of-day bucket.
+ *
+ * **Validates: Requirements 8.5**
+ */
+describe('Property 21: reference-range contextualization (Req 8.5)', () => {
+  const sexArb: fc.Arbitrary<Sex> = fc.constantFrom<Sex>('M', 'F', 'other');
+  const bucketArb: fc.Arbitrary<TimeOfDayBucket> = fc.constantFrom<TimeOfDayBucket>(
+    'morning',
+    'noon',
+    'afternoon',
+    'evening',
+  );
+  // Age in whole years across the full supported human range.
+  const ageArb = fc.integer({ min: 0, max: 120 });
+  // Reading value in nmol/L across (and beyond) the plausible salivary range so
+  // that below / normal / above are all reachable.
+  const valueArb = fc.double({ min: 0, max: 1000, noNaN: true });
+
+  it('classifies every reading with known age+sex using the appropriate age/sex/bucket range', () => {
+    fc.assert(
+      fc.property(valueArb, ageArb, sexArb, bucketArb, (value, age, sex, bucket) => {
+        const ctx = contextualizeReading(value, bucket, { age, sex });
+
+        // Age + sex are available, so a context is always produced (Req 8.5).
+        expect(ctx).not.toBeNull();
+
+        // The reference range used must be the one appropriate to the user's
+        // age band, sex, and the reading's time-of-day bucket.
+        const expectedBand = resolveAgeBand(age);
+        const expectedRange = resolveReferenceRange(expectedBand, sex, bucket);
+
+        expect(ctx!.ageBand).toBe(expectedBand);
+        expect(ctx!.sex).toBe(sex);
+        expect(ctx!.refLower).toBe(expectedRange.refLower);
+        expect(ctx!.refUpper).toBe(expectedRange.refUpper);
+
+        // Reference interval must always be ordered.
+        expect(ctx!.refLower).toBeLessThanOrEqual(ctx!.refUpper);
+
+        // Classification must be exactly the below/normal/above decision made
+        // against that appropriate range.
+        expect(ctx!.classification).toBe(classifyAgainstRange(value, expectedRange));
+
+        // And it must agree with the value's position relative to the bounds
+        // (inclusive bounds are normal).
+        if (value < expectedRange.refLower) {
+          expect(ctx!.classification).toBe('below');
+        } else if (value > expectedRange.refUpper) {
+          expect(ctx!.classification).toBe('above');
+        } else {
+          expect(ctx!.classification).toBe('normal');
+        }
+      }),
+      { numRuns: 100 },
+    );
   });
 });

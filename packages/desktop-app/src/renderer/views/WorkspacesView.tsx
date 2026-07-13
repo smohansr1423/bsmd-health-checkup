@@ -1,11 +1,19 @@
 /**
- * Workspaces view (Task 13.1 — Req 5.1, 5.2, 5.3, 5.4, 16.1).
+ * Workspaces view (Task 13.4 — Req 5.1, 5.2, 5.3, 5.4, 5.5, 16.1).
  *
- * Lists the accessible Workspaces, lets the User create one (validating the
- * 1..100-character name before sending — Req 5.3), and lets the User select the
- * Active_Workspace (Req 5.4), which the selection slice preserves across
- * navigation. The Workspace list is provided by the wiring layer (Task 16);
- * this view renders it and its empty state.
+ * Lists the accessible Workspaces by name (Req 5.1), lets the User create one
+ * (validating the 1..100-character name before sending — Req 5.3), and lets the
+ * User select the Active_Workspace (Req 5.4), which the selection slice
+ * preserves across navigation. The Workspace list is provided by the wiring
+ * layer (Task 16); this view renders it and its empty state.
+ *
+ * When the Backend_Gateway reports that the User is not authorized for a
+ * requested Workspace (Req 5.5), the wiring layer supplies an
+ * {@link WorkspaceAuthorizationError} through props and this view displays the
+ * authorization error. This view never renders a Workspace's APIs,
+ * conversations, or settings (those live in the API browser, history, and
+ * dashboard views), so an authorization error here surfaces the message without
+ * exposing any of that Workspace's content.
  */
 
 import React, { useState } from 'react';
@@ -25,13 +33,32 @@ export interface WorkspaceSummary {
   name: string;
 }
 
+/**
+ * A workspace-access authorization failure (Req 5.5). Supplied by the wiring
+ * layer when the Backend_Gateway reports the User is not authorized for a
+ * requested Workspace, so the view can display the authorization error without
+ * revealing any of that Workspace's content.
+ */
+export interface WorkspaceAuthorizationError {
+  /** The name (or id) of the Workspace the User attempted to access, when known. */
+  workspaceName?: string;
+  /** The authorization error detail returned by the Backend_Gateway. */
+  message: string;
+}
+
 export interface WorkspacesViewProps {
   /** The accessible Workspaces, or undefined before they have loaded. */
   workspaces?: readonly WorkspaceSummary[];
+  /**
+   * An authorization error for a requested Workspace (Req 5.5). When present the
+   * view displays the error and does not surface that Workspace's content.
+   */
+  authorizationError?: WorkspaceAuthorizationError;
 }
 
 export function WorkspacesView({
   workspaces,
+  authorizationError,
 }: WorkspacesViewProps): React.ReactElement {
   const { state, dispatch } = useAppStore();
   const actions = useViewActions();
@@ -81,6 +108,14 @@ export function WorkspacesView({
       </form>
 
       {loading ? <LoadingIndicator label="Creating workspace…" /> : null}
+
+      {authorizationError ? (
+        <p className="error error--authorization" role="alert">
+          {authorizationError.workspaceName
+            ? `You are not authorized to access "${authorizationError.workspaceName}": ${authorizationError.message}`
+            : authorizationError.message}
+        </p>
+      ) : null}
 
       {workspaces === undefined ? null : workspaces.length === 0 ? (
         <EmptyState message="No workspaces yet. Create one to get started." />

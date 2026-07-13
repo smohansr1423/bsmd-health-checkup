@@ -281,18 +281,33 @@ def _round(value: float) -> float:
     return round(value, DISPLAY_DECIMALS)
 
 
-def confidence_bounds(value: float, fraction: float) -> Tuple[float, float]:
-    """Lower/upper confidence bounds bracketing ``value`` (Req 4.5).
+def confidence_bounds_raw(value: float, fraction: float) -> Tuple[float, float]:
+    """Raw (unrounded) lower/upper confidence bounds bracketing ``value``.
 
     ``fraction`` is the combined relative uncertainty (>= 0). The lower bound is
-    clamped at 0 because nutrient amounts are non-negative. Rounding is
-    monotonic, so ``lower <= value <= upper`` continues to hold after both the
-    raw bounds and the value are rounded to the display precision.
+    clamped at 0 because nutrient amounts are non-negative. Callers that
+    aggregate across items must accumulate these raw bounds (alongside the raw
+    value) and round only the final totals; rounding each per-item bound before
+    summing can push the aggregated lower bound above the aggregated value and
+    break the ``lower <= value <= upper`` bracket (Req 4.5).
     """
     if fraction < 0:
         fraction = 0.0
     lower_raw = max(0.0, value * (1.0 - fraction))
     upper_raw = value * (1.0 + fraction)
+    return lower_raw, upper_raw
+
+
+def confidence_bounds(value: float, fraction: float) -> Tuple[float, float]:
+    """Lower/upper confidence bounds bracketing ``value``, rounded for display.
+
+    Convenience wrapper over :func:`confidence_bounds_raw` for the single-value
+    case. Rounding is monotonic, so ``lower <= value <= upper`` continues to
+    hold after both the raw bounds and the value are rounded to the display
+    precision. Do **not** use this per item inside an aggregation loop -- see
+    :func:`confidence_bounds_raw`.
+    """
+    lower_raw, upper_raw = confidence_bounds_raw(value, fraction)
     return _round(lower_raw), _round(upper_raw)
 
 
@@ -358,8 +373,10 @@ def _aggregate_named_nutrient(
     lacks the value the meal total cannot be calculated, so it is flagged
     unavailable (Req 4.6). An empty meal yields an available zero.
 
-    The confidence range is the sum of the per-item bounds, which preserves the
-    bracket ``lower <= value <= upper`` (Req 4.5).
+    The confidence range is the sum of the RAW per-item bounds, rounded once at
+    the end -- mirroring how the value total is accumulated. Summing bounds that
+    were each pre-rounded can push the aggregated lower bound above the
+    aggregated value and break the bracket ``lower <= value <= upper`` (Req 4.5).
     """
     unit = NUTRIENT_UNITS[nutrient]
 
@@ -378,7 +395,7 @@ def _aggregate_named_nutrient(
                 value=0.0, unit=unit, lower=0.0, upper=0.0, available=False
             )
         item_value = per_100g * (mass / 100.0)
-        lower, upper = confidence_bounds(
+        lower, upper = confidence_bounds_raw(
             item_value, _uncertainty_fraction(item, nutrient_uncertainty_pct)
         )
         total_value += item_value
@@ -404,6 +421,10 @@ def _aggregate_micronutrients(
     Micronutrient coverage is sparse by nature, so a micronutrient is displayed
     when at least one item reports it; contributions from items that report it
     are summed. Each displayed value carries a confidence range (Req 4.5).
+
+    As in :func:`_aggregate_named_nutrient`, the RAW per-item bounds are summed
+    and rounded once at the end so the ``lower <= value <= upper`` bracket
+    survives rounding (Req 4.5).
     """
     names: List[str] = []
     for item in items:
@@ -423,7 +444,7 @@ def _aggregate_micronutrients(
                 continue
             per_100g, unit = micro
             item_value = per_100g * (mass / 100.0)
-            lower, upper = confidence_bounds(
+            lower, upper = confidence_bounds_raw(
                 item_value, _uncertainty_fraction(item, nutrient_uncertainty_pct)
             )
             total_value += item_value

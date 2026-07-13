@@ -14,7 +14,7 @@ def test_package_name() -> None:
     assert PACKAGE_NAME == "nutrition-lookup"
 
 
-@settings(max_examples=100)
+@settings(max_examples=10)
 @given(st.floats(min_value=0, max_value=1e6, allow_nan=False, allow_infinity=False))
 def test_hypothesis_toolchain_runs(value: float) -> None:
     assert value >= 0

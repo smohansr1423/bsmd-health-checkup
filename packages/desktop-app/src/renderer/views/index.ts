@@ -15,6 +15,8 @@ export { WorkspacesView, CREATE_WORKSPACE_OP } from './WorkspacesView';
 export type { WorkspaceSummary } from './WorkspacesView';
 export { ApiBrowserView, SELECT_VERSION_OP } from './ApiBrowserView';
 export type { ApiSummary } from './ApiBrowserView';
+export { CredentialView, SCHEMES_OP, SET_CREDENTIAL_OP } from './CredentialView';
+export type { AuthScheme, AuthSchemeField, CredentialViewProps } from './CredentialView';
 export { QaView, ASK_OP } from './QaView';
 export type { QaResult } from './QaView';
 export { SearchView, SEARCH_OP } from './SearchView';

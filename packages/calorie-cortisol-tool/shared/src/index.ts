@@ -33,6 +33,10 @@ export * from './contracts/webhooks';
 // Cross-cutting AES-256 per-user encryption + separated key store (Task 3.1).
 export * from './crypto';
 
+// One-time configuration posture — config-as-code verified by smoke tests
+// (Task 18.4): model coverage/size, install size, transport security, SOC 2.
+export * from './posture';
+
 // Structured error / degraded-outcome result contract (Task 1.3). Also
 // importable directly via the `@calorie-cortisol/shared/result` subpath.
 export * from './result';

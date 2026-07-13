@@ -1,11 +1,13 @@
 /**
- * Semantic search view (Task 13.1 — Req 9.1, 9.3, 9.4, 16.1).
+ * Semantic search view (Task 13.7 — Req 9.1, 9.2, 9.3, 9.4, 16.1).
  *
  * Submits a semantic search query, validating the 1..1000-character length
  * before sending (Req 9.4) and gating on an Active_API_Version (Req 7.5). It
- * renders the "no relevant content found" empty state for zero results
- * (Req 9.3). The exact ordered rendering of populated results is owned by Task
- * 13.2; this view provides the scaffolding and empty state.
+ * displays a Loading_Indicator while the request is in flight (Req 9.1, 16.1),
+ * renders the results in the exact order the Backend_Gateway returned them —
+ * the results array is mapped in place with no client-side sorting or
+ * reordering (Req 9.2) — and shows the "no relevant content found" empty state
+ * for zero results (Req 9.3).
  */
 
 import React, { useState } from 'react';

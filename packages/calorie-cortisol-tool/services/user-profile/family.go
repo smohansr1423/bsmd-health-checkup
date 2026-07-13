@@ -214,6 +214,13 @@ func (s *FamilyService) EditMemberRole(accountID, actorUserID, targetMemberID st
 	if idx < 0 {
 		return Fail[FamilyMember](ValidationRejection(CodeMemberNotFound, "member profile not found"))
 	}
+	// The account must always retain an admin: demoting the sole admin to a
+	// non-admin role is rejected, leaving the affected profiles unchanged
+	// (preserving the single-admin migration invariant, mirroring RemoveMember).
+	if acct.Members[idx].Role == FamilyRoleAdmin && role != FamilyRoleAdmin && s.adminCount(acct) == 1 {
+		return Fail[FamilyMember](ValidationRejection(CodeInsufficientPermissions,
+			"the family account must retain an admin"))
+	}
 	acct.Members[idx].Role = role
 	return Okay(acct.Members[idx].clone())
 }

@@ -1,17 +1,21 @@
 /**
- * API browser view (Task 13.1 — Req 7.1, 7.2, 7.4, 7.5, 10.3).
+ * API browser view (Task 13.1 / 13.6 — Req 7.1, 7.2, 7.3, 7.4, 7.5, 10.3).
  *
- * Lists the Active_Workspace's APIs and their versions, lets the User select an
- * Active_API_Version, and surfaces the "unavailable version" error while
- * retaining the prior selection (Req 7.4, handled by the selection slice). When
- * no version is selected it shows the selection-required indication that gates
- * Q&A / execution / code generation (Req 7.5).
+ * Lists the Active_Workspace's APIs and their versions (Req 7.1), lets the User
+ * select an Active_API_Version (Req 7.2), and surfaces the "unavailable version"
+ * error while retaining the prior selection (Req 7.4, handled by the selection
+ * slice). When an Active_API_Version is set it displays that version's
+ * endpoints — each endpoint's path, HTTP method, and parameters — exactly as
+ * returned in the API_Metadata (Req 7.3). When no version is selected it shows
+ * the selection-required indication that gates Q&A / execution / code
+ * generation (Req 7.5).
  *
  * It also renders any configured target-API credentials in **masked form only**
  * (Req 10.3) — the plaintext secret never reaches this component.
  */
 
 import React from 'react';
+import type { apiCopilotShared } from '@health-checkup/services';
 import { knowledgeEngine } from '../app-client/builders';
 import { EmptyState } from '../components/EmptyState';
 import { MaskedCredential } from '../components/MaskedCredential';
@@ -32,12 +36,81 @@ export interface ApiSummary {
 export interface ApiBrowserViewProps {
   /** The Active_Workspace's APIs, or undefined before they load. */
   apis?: readonly ApiSummary[];
+  /**
+   * The API_Metadata for the Active_API_Version, supplied by the wiring layer
+   * once a version is selected. Its endpoints are displayed with each path,
+   * HTTP method, and parameters (Req 7.3). `undefined` while the metadata is
+   * still loading.
+   */
+  activeVersionMetadata?: apiCopilotShared.ApiMetadata;
   /** Configured target-API credentials, already masked (Req 10.3). */
   credentials?: readonly MaskedCredentialView[];
 }
 
+/**
+ * Human-readable summary of a single endpoint parameter (Req 7.3). Renders the
+ * parameter name, its location, and whether it is required, exactly as carried
+ * in the API_Metadata.
+ */
+function ParameterItem({
+  parameter,
+}: {
+  parameter: apiCopilotShared.ParameterMeta;
+}): React.ReactElement {
+  return (
+    <li className="endpoint__parameter">
+      <span className="endpoint__parameter-name">{parameter.name}</span>
+      <span className="endpoint__parameter-location">{parameter.location}</span>
+      <span className="endpoint__parameter-required">
+        {parameter.required ? 'required' : 'optional'}
+      </span>
+    </li>
+  );
+}
+
+/**
+ * The endpoints of the Active_API_Version, listed with path, method, and
+ * parameters (Req 7.3). Shown only while an Active_API_Version is set.
+ */
+function EndpointList({
+  metadata,
+}: {
+  metadata?: apiCopilotShared.ApiMetadata;
+}): React.ReactElement {
+  return (
+    <section className="api-endpoints" aria-labelledby="api-endpoints-title">
+      <h2 id="api-endpoints-title">Endpoints</h2>
+      {metadata === undefined ? null : metadata.endpoints.length === 0 ? (
+        <EmptyState message="This API version exposes no endpoints." />
+      ) : (
+        <ul className="endpoint-list">
+          {metadata.endpoints.map((endpoint) => (
+            <li key={endpoint.endpointId} className="endpoint">
+              <span className="endpoint__method">{endpoint.method}</span>
+              <span className="endpoint__path">{endpoint.path}</span>
+              {endpoint.parameters.length === 0 ? (
+                <span className="endpoint__no-parameters">No parameters</span>
+              ) : (
+                <ul className="endpoint__parameters">
+                  {endpoint.parameters.map((parameter) => (
+                    <ParameterItem
+                      key={`${endpoint.endpointId}:${parameter.location}:${parameter.name}`}
+                      parameter={parameter}
+                    />
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function ApiBrowserView({
   apis,
+  activeVersionMetadata,
   credentials,
 }: ApiBrowserViewProps): React.ReactElement {
   const { state } = useAppStore();
@@ -79,6 +152,10 @@ export function ApiBrowserView({
           The requested version ({state.selectionError.attempted.version}) is
           unavailable. The previous selection is still active.
         </p>
+      ) : null}
+
+      {state.activeApiVersion !== null ? (
+        <EndpointList metadata={activeVersionMetadata} />
       ) : null}
 
       {apis === undefined ? null : apis.length === 0 ? (

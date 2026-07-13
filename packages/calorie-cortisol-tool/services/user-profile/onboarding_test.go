@@ -89,9 +89,18 @@ func TestSubmitStepBlocksAndRetainsResponsesOnInvalidInput(t *testing.T) {
 	h := NewOnboardingHandler(nil, nil)
 	const uid = "user-1"
 
-	// Complete step 1.
+	// Complete steps 1-3 so the first incomplete step is step 4. This isolates
+	// the "advancement blocked" behavior under test from the resume-at-first-
+	// incomplete-step rule (Req 16.7): skipping steps 2/3 would legitimately
+	// make Resume land on step 2, not step 4.
 	if r := h.SubmitStep(uid, StepHealthGoals, map[string]any{FieldHealthGoals: []any{GoalStressManagement}}); r.Err != nil {
 		t.Fatalf("step 1 should succeed, got %+v", r.Err)
+	}
+	if r := h.SubmitStep(uid, StepDietary, map[string]any{FieldDietaryRestrictions: []any{"none"}}); r.Err != nil {
+		t.Fatalf("step 2 should succeed, got %+v", r.Err)
+	}
+	if r := h.SubmitStep(uid, StepDevices, map[string]any{FieldConnectedDevices: []any{"none"}}); r.Err != nil {
+		t.Fatalf("step 3 should succeed, got %+v", r.Err)
 	}
 
 	// Step 4 for a stress goal requires testing_frequency; omit it.

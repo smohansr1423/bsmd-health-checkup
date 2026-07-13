@@ -1,11 +1,18 @@
 /**
- * Code generation view (Task 13.1 — Req 13.1, 13.2, 13.3, 13.4, 16.1).
+ * Code generation view (Task 13.13 — Req 13.1, 13.2, 13.3, 13.5; also 13.4, 16.1).
  *
- * Offers the backend-provided languages, requests a Code_Snippet for a selected
- * endpoint in a chosen language (gating on an Active_API_Version — Req 13.4),
- * and displays the returned snippet with a copy-to-clipboard action (Req 13.3).
- * A displayed snippet is left unchanged on a subsequent error (Req 13.5); this
- * view renders whatever snippet the wiring layer holds.
+ * Offers the backend-provided languages as selectable options (Req 13.1),
+ * requests a Code_Snippet for a selected endpoint in a chosen language while
+ * gating on an Active_API_Version (Req 13.2, 13.4), and displays a
+ * Loading_Indicator until the response arrives (Req 13.2, 16.1). A returned
+ * Code_Snippet is shown with a copy-to-clipboard action (Req 13.3).
+ *
+ * Req 13.5 — an unavailable-endpoint / unsupported-language Backend_Error is
+ * surfaced via the `error` prop and rendered *independently* of the `snippet`
+ * prop. The wiring layer (Task 14.2) leaves the previously displayed snippet
+ * untouched on such a failure, so this view keeps showing the prior snippet
+ * alongside the error: the two props are rendered in separate regions and one
+ * never clears the other.
  */
 
 import React, { useState } from 'react';
@@ -15,7 +22,10 @@ import { LoadingIndicator } from '../components/LoadingIndicator';
 import { useAppStore } from '../state/store';
 import { useViewActions } from './actions';
 
-/** Stable operation id for a code-generation request. */
+/** Stable operation id for loading the supported languages (Req 13.1). */
+export const LANGUAGES_OP = 'code-generator:languages';
+
+/** Stable operation id for a code-generation request (Req 13.2). */
 export const GENERATE_OP = 'code-generator:generate';
 
 /** A generated Code_Snippet (mirrors the backend by name). */
@@ -25,15 +35,25 @@ export interface CodeSnippet {
 }
 
 export interface CodeGenViewProps {
-  /** Supported languages offered by the backend, or undefined before load. */
+  /** Supported languages offered by the backend, or undefined before load (Req 13.1). */
   languages?: readonly string[];
-  /** The most recently generated snippet, or undefined when none exists. */
+  /**
+   * The most recently generated snippet, or undefined when none exists (Req 13.3).
+   * On an unavailable-endpoint/unsupported-language error the wiring layer leaves
+   * this prop unchanged so the prior snippet stays displayed (Req 13.5).
+   */
   snippet?: CodeSnippet;
+  /**
+   * A secret-free Backend_Error to surface for an unavailable endpoint definition
+   * or an unsupported language (Req 13.5). Rendered independently of `snippet`.
+   */
+  error?: string;
 }
 
 export function CodeGenView({
   languages,
   snippet,
+  error,
 }: CodeGenViewProps): React.ReactElement {
   const { state } = useAppStore();
   const actions = useViewActions();
@@ -41,10 +61,20 @@ export function CodeGenView({
   const [language, setLanguage] = useState('');
   const [message, setMessage] = useState<string | null>(null);
 
+  const languagesLoading = state.requests[LANGUAGES_OP] === 'loading';
   const loading = state.requests[GENERATE_OP] === 'loading';
 
   const handleGenerate = (event: React.FormEvent): void => {
     event.preventDefault();
+    // Local guards: don't send a request that the backend would only reject.
+    if (endpointId.trim().length === 0) {
+      setMessage('Select an endpoint before generating code.');
+      return;
+    }
+    if (language.length === 0) {
+      setMessage('Select a language before generating code.');
+      return;
+    }
     const gated = codeGenerator.generate(
       state.activeApiVersion,
       endpointId,
@@ -93,6 +123,9 @@ export function CodeGenView({
             ))}
           </select>
         </label>
+        {languagesLoading ? (
+          <LoadingIndicator label="Loading languages…" />
+        ) : null}
         {message !== null ? (
           <p className="error" role="alert">
             {message}
@@ -104,6 +137,14 @@ export function CodeGenView({
       </form>
 
       {loading ? <LoadingIndicator label="Generating code…" /> : null}
+
+      {/* Req 13.5 — the backend error is rendered on its own, and never clears
+          the snippet region below, so any prior snippet stays displayed. */}
+      {error !== undefined ? (
+        <p className="error error--code-gen" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       {snippet ? (
         <div className="code-snippet">

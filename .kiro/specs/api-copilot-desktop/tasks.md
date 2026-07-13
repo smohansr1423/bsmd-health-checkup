@@ -100,8 +100,8 @@ Test sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
 - [x] 8. Checkpoint - core client and main services
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Implement the app state store and reducers
-  - [ ] 9.1 Implement the reducer-driven store and startup router
+- [x] 9. Implement the app state store and reducers
+  - [x] 9.1 Implement the reducer-driven store and startup router
     - In `src/renderer/state/store.ts` implement `AppState` and pure reducers for: startup routing (base-URL prompt vs authenticated home vs sign-in), session (including `session_expired` clearing token, flagging expiry notice, routing to sign-in), active workspace/version persistence across navigation, failed version-select retaining the prior version, per-operation loading lifecycle, connectivity state machine, and input retention/clearing
     - _Requirements: 1.1, 1.4, 1.5, 4.4, 5.4, 7.2, 7.4, 16.1, 16.2, 17.1, 17.2, 17.3, 17.4, 17.5, 18.1_
 
@@ -133,8 +133,8 @@ Test sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
     - **Property 20: Failed operations retain their input for retry**
     - **Validates: Requirements 8.7, 11.5, 17.5**
 
-- [ ] 10. Implement the preload bridge
-  - [ ] 10.1 Implement the typed contextBridge preload
+- [x] 10. Implement the preload bridge
+  - [x] 10.1 Implement the typed contextBridge preload
     - In `src/preload/preload.ts` expose a single frozen `window.copilot` object with `getBaseUrl`, `setBaseUrl`, `secureRequest`, `signOut`, `onUpdateAvailable`, `persistWindowState`; no raw `ipcRenderer`, no Node globals; renderer never receives the token
     - _Requirements: 4.1, 4.2_
 
@@ -161,11 +161,11 @@ Test sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
     - _Requirements: 19.4_
 
 - [ ] 13. Implement the renderer views
-  - [ ] 13.1 Implement the navigation shell and routing controls
+  - [x] 13.1 Implement the navigation shell and routing controls
     - In `src/renderer/views/` build the signed-in navigation shell providing controls to reach workspaces, API browser, Q&A, testing console, code-gen, history, and dashboard; route changes preserve active workspace/version
     - _Requirements: 18.1, 18.3_
 
-  - [ ] 13.2 Implement sign-up and sign-in views
+  - [x] 13.2 Implement sign-up and sign-in views
     - Wire forms to validators and builders, show loading indicators, on success store token/route home; render email-already-registered, credential-mismatch, and account-locked errors; retain fields except password
     - _Requirements: 2.1, 2.2, 2.4, 2.5, 3.1, 3.2, 3.4, 3.5_
 
@@ -173,19 +173,19 @@ Test sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
     - Test email-already-registered, credential-mismatch, and account-locked rendering and field retention
     - _Requirements: 2.4, 2.5, 3.4, 3.5_
 
-  - [ ] 13.4 Implement workspace and specification-upload views
+  - [x] 13.4 Implement workspace and specification-upload views
     - List workspaces by name, create workspace, set active workspace; upload with content-type and size gating, success confirmation identifying API + version, parse-failure detail pass-through with retained selection, plan-limit error
     - _Requirements: 5.1, 5.2, 5.5, 6.1, 6.4, 6.5, 6.6_
 
-  - [ ] 13.5 Write unit tests for workspace/upload error screens
+  - [-] 13.5 Write unit tests for workspace/upload error screens
     - Test authorization error, parse-failure detail retention, and plan-limit messaging
     - _Requirements: 5.5, 6.4, 6.5, 6.6_
 
-  - [ ] 13.6 Implement API browser and version selection view
+  - [x] 13.6 Implement API browser and version selection view
     - Display APIs with versions, send version-select, display endpoints (path, method, parameters) for the active version, and indicate when a version must be selected
     - _Requirements: 7.1, 7.3, 7.5_
 
-  - [ ] 13.7 Implement Q&A and semantic search views
+  - [x] 13.7 Implement Q&A and semantic search views
     - Submit question/query with loading, render answer text with citations, "no grounded answer" state, quota-reached message, 30s timeout with retained question; render search results in backend order with the zero-results message
     - _Requirements: 8.1, 8.4, 8.5, 9.1, 9.2, 9.3_
 
@@ -193,11 +193,11 @@ Test sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
     - **Property 16: List rendering preserves backend ordering**
     - **Validates: Requirements 9.2, 12.3, 14.1**
 
-  - [ ] 13.9 Implement credential configuration view
+  - [x] 13.9 Implement credential configuration view
     - List supported schemes, submit credential values over HTTPS, display credentials masked, and show credential errors with no secret value
     - _Requirements: 10.1, 10.2, 10.3, 10.4_
 
-  - [ ] 13.10 Implement endpoint-execution and testing-console views
+  - [-] 13.10 Implement endpoint-execution and testing-console views
     - Request execution plan, prompt for reported missing values and block execute until supplied, run execute/console/replay with loading, display status/headers/body and elapsed ms unaltered, retain values on target timeout/network failure, display history most-recent-first, replay entries, and show replay-auth errors while retaining the history entry
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 12.1, 12.2, 12.3, 12.4, 12.5_
 
@@ -209,11 +209,11 @@ Test sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
     - **Property 18: Execution is blocked until every required value is supplied**
     - **Validates: Requirements 11.2**
 
-  - [ ] 13.13 Implement code-generation view with clipboard copy
+  - [-] 13.13 Implement code-generation view with clipboard copy
     - Offer returned languages, generate snippet for the active version with loading, display snippet with a copy-to-clipboard action, and show unavailable-endpoint/unsupported-language errors while leaving a prior snippet unchanged
     - _Requirements: 13.1, 13.2, 13.3, 13.5_
 
-  - [ ] 13.14 Implement conversation-history and usage-dashboard views
+  - [-] 13.14 Implement conversation-history and usage-dashboard views
     - Display history entries most-recent-first with question, answer, submitting user, and timestamp; empty-history and authorization messages; dashboard counts (AI queries, executions, code-gen), quota consumed vs plan limit, no-usage state, and 3s-timeout/error with retry
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 15.1, 15.2, 15.3, 15.4, 15.5_
 

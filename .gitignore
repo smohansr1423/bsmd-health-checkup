@@ -14,3 +14,5 @@ coverage/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+# Go compiled binaries
+*.exe

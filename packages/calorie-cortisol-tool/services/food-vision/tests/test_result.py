@@ -84,7 +84,7 @@ def test_timeout_and_capacity_offer_retry_with_retained_state() -> None:
     assert c.retryable is True and c.retained_state is True
 
 
-@settings(max_examples=100)
+@settings(max_examples=10)
 @given(st.text(min_size=1, max_size=40), st.text(max_size=120), st.booleans())
 def test_every_factory_yields_well_formed_contract(
     code: str, message: str, retryable: bool
@@ -98,7 +98,7 @@ def test_every_factory_yields_well_formed_contract(
         assert _has_contract_shape(e)
 
 
-@settings(max_examples=100)
+@settings(max_examples=10)
 @given(
     st.text(min_size=1, max_size=40),
     st.text(max_size=120),

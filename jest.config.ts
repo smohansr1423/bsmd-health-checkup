@@ -4,7 +4,17 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/packages'],
-  testMatch: ['**/*.test.ts', '**/*.spec.ts'],
+  testMatch: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts'],
+  // The desktop-app renderer is a React (JSX + DOM lib) package, so its files
+  // must be compiled with its own tsconfig; every other package keeps the root
+  // tsconfig. Path-scoped transforms let both coexist in one Jest run.
+  transform: {
+    '.*[\\\\/]packages[\\\\/]desktop-app[\\\\/].*\\.tsx?$': [
+      'ts-jest',
+      { tsconfig: 'packages/desktop-app/tsconfig.json' },
+    ],
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
+  },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.fast-check.ts'],
   moduleNameMapper: {
     '@health-checkup/shared': '<rootDir>/packages/shared/src',

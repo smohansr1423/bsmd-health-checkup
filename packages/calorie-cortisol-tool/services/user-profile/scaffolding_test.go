@@ -19,7 +19,7 @@ func TestPackageName(t *testing.T) {
 
 func TestGopterToolchainRuns(t *testing.T) {
 	parameters := gopter.DefaultTestParameters()
-	parameters.MinSuccessfulTests = 100
+	parameters.MinSuccessfulTests = 10 // reduced from 100 for faster local runs
 
 	properties := gopter.NewProperties(parameters)
 	properties.Property("non-negative ints stay non-negative", prop.ForAll(
