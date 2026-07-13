@@ -35,6 +35,28 @@ RUN npx tsc -p packages/shared/tsconfig.json
 RUN npx tsc -p packages/services/tsconfig.json
 RUN npx tsc -p packages/api-gateway/tsconfig.json
 
+# --- Calorie & Cortisol (CC) TypeScript packages (additive, Option A1) ---
+# The CC tool is a SEPARATE npm project with its own lockfile / workspaces /
+# @calorie-cortisol/* aliases. Build its TS packages so their dist/ (and the
+# workspace node_modules that resolve @calorie-cortisol/* at runtime) exist in
+# the image; the gateway then require()s the compiled bundles lazily at runtime.
+# Copied after the health-checkup build so those layers stay cached when only CC
+# source changes. Only the Node/TS services are folded in — the CC Python
+# (food-vision, nutrition-lookup, insights-ml) and Go (user-profile) services
+# are NOT part of this single-Node-container integration.
+COPY packages/calorie-cortisol-tool/package.json packages/calorie-cortisol-tool/package-lock.json packages/calorie-cortisol-tool/
+COPY packages/calorie-cortisol-tool/tsconfig.json packages/calorie-cortisol-tool/
+COPY packages/calorie-cortisol-tool/shared/package.json packages/calorie-cortisol-tool/shared/
+COPY packages/calorie-cortisol-tool/gateway/package.json packages/calorie-cortisol-tool/gateway/
+COPY packages/calorie-cortisol-tool/services/cortisol-data/package.json packages/calorie-cortisol-tool/services/cortisol-data/
+COPY packages/calorie-cortisol-tool/services/notification/package.json packages/calorie-cortisol-tool/services/notification/
+COPY packages/calorie-cortisol-tool/clients/pwa/package.json packages/calorie-cortisol-tool/clients/pwa/
+COPY packages/calorie-cortisol-tool/clients/shared/package.json packages/calorie-cortisol-tool/clients/shared/
+RUN npm ci --ignore-scripts --prefix packages/calorie-cortisol-tool || npm install --prefix packages/calorie-cortisol-tool
+# Copy the CC source + tsconfigs, then build all CC TS packages (tsc --build).
+COPY packages/calorie-cortisol-tool packages/calorie-cortisol-tool/
+RUN npm run build --prefix packages/calorie-cortisol-tool
+
 # Expose port
 ENV PORT=3000
 EXPOSE 3000

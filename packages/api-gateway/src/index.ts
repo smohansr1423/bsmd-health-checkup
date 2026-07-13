@@ -43,6 +43,7 @@ import {
   apiCopilotTestingConsoleRoutes,
   apiCopilotConversationRoutes,
   apiCopilotUsageAnalyticsRoutes,
+  calorieCortisolRoutes,
 } from './routes';
 import { createServiceRegistry } from './service-registry';
 
@@ -126,6 +127,13 @@ export function createGatewayApp(config: GatewayConfig) {
 
   // Personal-data deletion (auth required) — confirms completion within 30 days (Req 18.7)
   app.use('/api/privacy', privacyRoutes);
+
+  // --- Calorie & Cortisol (CC) integration (additive, Option A1) ---
+  // Folds the calorie-cortisol-tool's TypeScript capabilities into this single
+  // deployed gateway under /api/cc (protected by the auth middleware above).
+  // The CC compiled bundles are loaded lazily at runtime; if they are absent
+  // the CC routes fail safe with 503 and never affect any other route.
+  app.use('/api/cc', calorieCortisolRoutes);
 
   // --- API Copilot AI domain routes (protected; auth enforced by /api guard) ---
   // Each domain is mounted under /api/copilot/*, protected by the auth

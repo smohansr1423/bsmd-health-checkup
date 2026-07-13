@@ -9,3 +9,7 @@ node_modules
 .env
 .env.*
 coverage
+
+# Python virtualenv shipped alongside the calorie-cortisol-tool (not needed for
+# the Node/TS build folded into the gateway image)
+**/.venv
