@@ -1,0 +1,56 @@
+# OPTIONAL infrastructure for teams that want REAL persistence later.
+#
+# The default `npm run dev` path does NOT need any of this — every service runs
+# with in-memory adapters. This file only exists for future work where you want
+# to point the services at real PostgreSQL / TimescaleDB / Redis / Elasticsearch
+# backends instead of the in-memory fakes.
+#
+# Bring it up with:   docker compose up -d
+# Tear it down with:  docker compose down -v
+#
+# NOTE: none of the dev-mode entrypoints read these by default; wiring the
+# services to these endpoints is a separate, opt-in exercise.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: calorie_cortisol
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: cortisol
+    ports:
+      - '5433:5432'
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+    ports:
+      - '9200:9200'
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
+volumes:
+  postgres-data:
+  timescale-data:
+  es-data:

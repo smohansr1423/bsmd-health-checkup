@@ -12,6 +12,8 @@
     "clients/shared"
   ],
   "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:setup:py": "python -m venv .venv && .venv/Scripts/python -m pip install fastapi uvicorn pydantic",
     "build": "tsc --build",
     "test": "jest --passWithNoTests",
     "test:node": "jest --passWithNoTests",

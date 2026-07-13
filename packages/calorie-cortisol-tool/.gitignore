@@ -1,0 +1,12 @@
+# Local Python virtualenv used by dev mode (see RUN.md)
+.venv/
+
+# Node / build artifacts
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Python caches
+__pycache__/
+.pytest_cache/
+.hypothesis/
