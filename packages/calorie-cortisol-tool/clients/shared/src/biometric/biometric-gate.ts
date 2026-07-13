@@ -145,26 +145,30 @@ export function applyBiometricResult(
 
     case 'cancelled':
       // Cancel keeps data hidden and presents the fallback (Req 18.6). A cancel
-      // is not a failed match, so the failure count is preserved unchanged.
+      // is not a failed match, so the failure count is preserved unchanged. It
+      // is also not a foreground/resume/lock event, so the backgrounded marker
+      // is preserved: a later resume after ≥60 s must still re-lock (Req 18.1).
       return {
         visibility: 'hidden',
         activePrompt: 'fallback',
         consecutiveFailures: state.consecutiveFailures,
         biometricDenied: state.biometricDenied,
         indication: GateIndication.BiometricCancelled,
-        backgroundedAtMs: null,
+        backgroundedAtMs: state.backgroundedAtMs,
       };
 
     case 'unavailable':
     default:
       // Biometrics unavailable at the OS level: present fallback (Req 18.5).
+      // Like cancel, this does not clear the backgrounded marker, so a later
+      // resume after ≥60 s still re-locks (Req 18.1).
       return {
         visibility: 'hidden',
         activePrompt: 'fallback',
         consecutiveFailures: state.consecutiveFailures,
         biometricDenied: true,
         indication: GateIndication.BiometricUnavailable,
-        backgroundedAtMs: null,
+        backgroundedAtMs: state.backgroundedAtMs,
       };
   }
 }
@@ -191,12 +195,14 @@ export function applyFallbackResult(
       backgroundedAtMs: null,
     };
   }
+  // A failed fallback attempt is not a foreground/resume/lock event, so the
+  // backgrounded marker is preserved (a later resume after ≥60 s re-locks;
+  // Req 18.1). Only visibility, prompt, and indication change.
   return {
     ...state,
     visibility: 'hidden',
     activePrompt: 'fallback',
     indication: GateIndication.FallbackNotRecognized,
-    backgroundedAtMs: null,
   };
 }
 

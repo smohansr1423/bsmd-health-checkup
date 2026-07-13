@@ -12,7 +12,7 @@ describe('@calorie-cortisol/cortisol-data scaffolding', () => {
 
   it('runs the fast-check property toolchain (min 100 iterations)', () => {
     fc.assert(
-      fc.property(fc.double({ min: 0.01, max: 100 }), (v) => v >= 0.01 && v <= 100)
+      fc.property(fc.double({ min: 0.01, max: 100, noNaN: true }), (v) => v >= 0.01 && v <= 100)
     );
   });
 });
