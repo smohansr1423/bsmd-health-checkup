@@ -5,11 +5,12 @@ on:
     branches: [main]
     paths:
       - 'mobile/**'
+      - '.github/workflows/mobile-ios-build.yml'
   workflow_dispatch: # allows manual trigger from GitHub UI
 
 jobs:
   build-ios:
-    runs-on: macos-14  # M1 Mac runner (free for public repos)
+    runs-on: macos-14
     timeout-minutes: 45
 
     steps:
@@ -20,8 +21,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: mobile/package-lock.json
 
       - name: Install dependencies
         working-directory: mobile
@@ -40,12 +39,15 @@ jobs:
         id: detect
         run: |
           WORKSPACE=$(ls -d *.xcworkspace | head -1)
-          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | grep -A1 "Schemes:" | tail -1 | xargs)
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list 2>/dev/null | grep -A1 "Schemes:" | tail -1 | xargs)
+          if [ -z "$SCHEME" ]; then
+            SCHEME=$(echo "$WORKSPACE" | sed 's/.xcworkspace//')
+          fi
           echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
           echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
           echo "Detected workspace: $WORKSPACE, scheme: $SCHEME"
 
-      - name: Build iOS app (simulator .app)
+      - name: Build iOS app (simulator)
         working-directory: mobile/ios
         run: |
           xcodebuild \
@@ -54,17 +56,20 @@ jobs:
             -configuration Release \
             -sdk iphonesimulator \
             -derivedDataPath build \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="-" | xcpretty
+            CODE_SIGN_IDENTITY="-" \
+            COMPILER_INDEX_STORE_ENABLE=NO | xcpretty || true
 
       - name: Package .app into .ipa
         working-directory: mobile/ios
         run: |
-          APP_PATH=$(find build -name "*.app" -path "*/Release-iphonesimulator/*" | head -1)
+          APP_PATH=$(find build -name "*.app" -type d | head -1)
           if [ -z "$APP_PATH" ]; then
-            APP_PATH=$(find build -name "*.app" | head -1)
+            echo "No .app found, listing build directory:"
+            find build -type d -maxdepth 4
+            exit 1
           fi
           echo "Found app at: $APP_PATH"
           mkdir -p Payload
@@ -79,14 +84,6 @@ jobs:
           path: mobile/ios/HealthSuite.ipa
           retention-days: 30
 
-      # Also upload the simulator build for easy testing
-      - name: Upload simulator .app
-        uses: actions/upload-artifact@v4
-        with:
-          name: HealthSuite-Simulator
-          path: mobile/ios/build/Build/Products/Release-iphonesimulator/*.app
-          retention-days: 30
-
   build-android:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -99,8 +96,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: mobile/package-lock.json
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -118,7 +113,7 @@ jobs:
 
       - name: Build Android APK
         working-directory: mobile/android
-        run: ./gradlew assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleRelease
 
       - name: Upload .apk artifact
         uses: actions/upload-artifact@v4
