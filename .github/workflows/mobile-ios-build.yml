@@ -1,0 +1,128 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+  workflow_dispatch: # allows manual trigger from GitHub UI
+
+jobs:
+  build-ios:
+    runs-on: macos-14  # M1 Mac runner (free for public repos)
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm install
+
+      - name: Generate native iOS project
+        working-directory: mobile
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Install CocoaPods
+        working-directory: mobile/ios
+        run: pod install
+
+      - name: Detect Xcode workspace and scheme
+        working-directory: mobile/ios
+        id: detect
+        run: |
+          WORKSPACE=$(ls -d *.xcworkspace | head -1)
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | grep -A1 "Schemes:" | tail -1 | xargs)
+          echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
+          echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
+          echo "Detected workspace: $WORKSPACE, scheme: $SCHEME"
+
+      - name: Build iOS app (simulator .app)
+        working-directory: mobile/ios
+        run: |
+          xcodebuild \
+            -workspace "${{ steps.detect.outputs.workspace }}" \
+            -scheme "${{ steps.detect.outputs.scheme }}" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="-" | xcpretty
+
+      - name: Package .app into .ipa
+        working-directory: mobile/ios
+        run: |
+          APP_PATH=$(find build -name "*.app" -path "*/Release-iphonesimulator/*" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find build -name "*.app" | head -1)
+          fi
+          echo "Found app at: $APP_PATH"
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r HealthSuite.ipa Payload
+          rm -rf Payload
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HealthSuite-iOS
+          path: mobile/ios/HealthSuite.ipa
+          retention-days: 30
+
+      # Also upload the simulator build for easy testing
+      - name: Upload simulator .app
+        uses: actions/upload-artifact@v4
+        with:
+          name: HealthSuite-Simulator
+          path: mobile/ios/build/Build/Products/Release-iphonesimulator/*.app
+          retention-days: 30
+
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm install
+
+      - name: Generate native Android project
+        working-directory: mobile
+        run: npx expo prebuild --platform android --clean
+
+      - name: Build Android APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease
+
+      - name: Upload .apk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HealthSuite-Android
+          path: mobile/android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
