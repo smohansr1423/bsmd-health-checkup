@@ -1,0 +1,67 @@
+# CI for the main backend packages of the Senior Citizen Health Checkup System:
+#   - @health-checkup/shared       (packages/shared)
+#   - @health-checkup/services     (packages/services)
+#   - @health-checkup/api-gateway  (packages/api-gateway)
+#
+# The self-contained Calorie & Cortisol Tool sub-monorepo has its own workflow
+# (calorie-cortisol-tool.yml); this one deliberately does NOT cover it.
+#
+# Gate = build (tsc) + test (Jest + fast-check). Lint runs as a non-blocking
+# report because the existing test suites carry pre-existing @ts-nocheck lint
+# errors that are out of scope to fix here.
+name: backend-ci
+
+on:
+  push:
+    paths:
+      - 'packages/shared/**'
+      - 'packages/services/**'
+      - 'packages/api-gateway/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'jest.config.ts'
+      - 'jest.setup.fast-check.ts'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    paths:
+      - 'packages/shared/**'
+      - 'packages/services/**'
+      - 'packages/api-gateway/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'jest.config.ts'
+      - 'jest.setup.fast-check.ts'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  build-and-test:
+    name: Build & Test (shared, services, api-gateway)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # --ignore-scripts skips postinstalls we don't need for building/testing
+      # the backend (Electron binary download, Prisma generate — no backend
+      # source imports @prisma/client).
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build (tsc)
+        run: |
+          npm run build --workspace=packages/shared
+          npm run build --workspace=packages/services
+          npm run build --workspace=packages/api-gateway
+
+      - name: Lint (non-blocking report)
+        continue-on-error: true
+        run: npx eslint packages/shared packages/services packages/api-gateway --ext .ts,.tsx
+
+      - name: Test (Jest + fast-check)
+        run: npx jest packages/shared packages/services packages/api-gateway --ci

@@ -3,7 +3,8 @@
  * All service route groups for the API Gateway.
  */
 
-export { default as authRoutes } from './auth.routes';
+export { createAuthRoutes } from './auth.routes';
+export type { AuthRoutesDeps } from './auth.routes';
 export { default as registrationRoutes } from './registration.routes';
 export { default as checkupPackageRoutes } from './checkup-package.routes';
 export { default as schedulingRoutes } from './scheduling.routes';
@@ -16,9 +17,11 @@ export { default as notificationsRoutes } from './notifications.routes';
 export { default as deviceReadingsRoutes } from './device-readings.routes';
 export { default as healthRoutes } from './health.routes';
 export { default as privacyRoutes } from './privacy.routes';
-
 // --- Calorie & Cortisol (CC) integration (additive, Option A1) ---
-export { default as calorieCortisolRoutes } from './calorie-cortisol.routes';
+export {
+  default as calorieCortisolRoutes,
+  calorieCortisolPublicRoutes,
+} from './calorie-cortisol.routes';
 
 // --- API Copilot AI domain routes (one per domain) ---
 export { default as apiCopilotAccountAuthRoutes } from './api-copilot-account-auth.routes';

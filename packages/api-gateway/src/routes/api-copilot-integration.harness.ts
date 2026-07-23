@@ -14,7 +14,7 @@
 import http from 'http';
 import type { AddressInfo } from 'net';
 
-import type { Role } from '@health-checkup/services';
+import { AuthService, type Role } from '@health-checkup/services';
 
 import { createGatewayApp } from '../index';
 import type { GatewayConfig } from '../index';
@@ -53,6 +53,8 @@ export function buildTestGateway(): {
       },
       refreshSession: () => true,
     },
+    // AuthService instance backing /api/auth (not exercised by these tests).
+    authService: new AuthService(),
     // Disable TLS enforcement so localhost HTTP requests are not refused.
     tls: { enabled: false },
   };

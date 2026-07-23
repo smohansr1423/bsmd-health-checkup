@@ -19,7 +19,7 @@ import {
 } from './middleware';
 import type { AuthMiddlewareConfig, TlsEnforcementConfig } from './middleware';
 import {
-  authRoutes,
+  createAuthRoutes,
   registrationRoutes,
   checkupPackageRoutes,
   schedulingRoutes,
@@ -44,12 +44,17 @@ import {
   apiCopilotConversationRoutes,
   apiCopilotUsageAnalyticsRoutes,
   calorieCortisolRoutes,
+  calorieCortisolPublicRoutes,
 } from './routes';
 import { createServiceRegistry } from './service-registry';
+import { createGatewayAuth } from './auth/gateway-auth';
+import type { AuthService } from '@health-checkup/services';
 
 export interface GatewayConfig {
-  /** Auth middleware configuration */
+  /** Auth middleware configuration (token validation + session refresh). */
   auth: AuthMiddlewareConfig;
+  /** AuthService backing the /api/auth login/logout/refresh endpoints. */
+  authService: AuthService;
   /** Port to listen on (default: 3000) */
   port?: number;
   /** CORS origin (default: *) */
@@ -103,11 +108,16 @@ export function createGatewayApp(config: GatewayConfig) {
   app.use('/health', healthRoutes);
 
   // --- Public routes (no auth required) ---
-  app.use('/api/auth', authRoutes);
+  app.use('/api/auth', createAuthRoutes({ authService: config.authService }));
 
   // API Copilot AI account sign-up/sign-in establish authentication, so they
   // are public and must be mounted before the gateway auth middleware.
   app.use('/api/copilot/account', apiCopilotAccountAuthRoutes);
+
+  // Calorie & Cortisol liveness check is public (like the top-level /health),
+  // mounted before the auth guard so it can be probed without a token. The CC
+  // functional routes remain protected (mounted after the auth guard below).
+  app.use('/api/cc', calorieCortisolPublicRoutes);
 
   // --- Protected routes (auth required) ---
   const authMiddleware = createGatewayAuthMiddleware(config.auth);
@@ -229,61 +239,24 @@ export type { EventWiringDependencies } from './event-wiring';
 
 // --- Auto-start when run directly ---
 if (require.main === module) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const jwtSecret = process.env.JWT_SECRET || 'default-dev-secret-change-in-production';
+  // Resolve auth from the environment. This FAILS FAST in production when
+  // JWT_SECRET is missing/weak, and never accepts arbitrary tokens unless the
+  // explicit AUTH_DEV_BYPASS opt-in is set outside production.
+  let gatewayAuth: ReturnType<typeof createGatewayAuth>;
+  try {
+    gatewayAuth = createGatewayAuth(process.env);
+  } catch (err) {
+    console.error('[API Gateway] Auth configuration error:', (err as Error).message);
+    process.exit(1);
+    throw err; // unreachable; satisfies control-flow analysis
+  }
 
   startGateway({
     auth: {
-      validateToken: (token: string) => {
-        if (!token) return null;
-
-        if (isProduction) {
-          // Production mode: validate JWT token
-          try {
-            // Simple JWT validation (base64-decode payload)
-            const parts = token.split('.');
-            if (parts.length !== 3) return null;
-
-            const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-
-            // Check expiration
-            if (payload.exp && Date.now() >= payload.exp * 1000) return null;
-
-            // Verify signature using HMAC-SHA256
-            const crypto = require('crypto');
-            const signatureInput = parts[0] + '.' + parts[1];
-            const expectedSignature = crypto
-              .createHmac('sha256', jwtSecret)
-              .update(signatureInput)
-              .digest('base64url');
-
-            if (parts[2] !== expectedSignature) return null;
-
-            return {
-              token,
-              userId: payload.sub || payload.userId,
-              role: payload.role || 'Senior_Citizen',
-              sessionId: payload.sessionId || `session-${payload.sub}`,
-              issuedAt: new Date(payload.iat * 1000),
-              expiresAt: new Date(payload.exp * 1000),
-            };
-          } catch {
-            return null;
-          }
-        } else {
-          // Dev mode: accept any non-empty token and return mock user info
-          return {
-            token,
-            userId: 'dev-user',
-            role: 'Administrator' as const,
-            sessionId: 'dev-session',
-            issuedAt: new Date(),
-            expiresAt: new Date(Date.now() + 3600000),
-          };
-        }
-      },
-      refreshSession: (_sessionId: string) => true,
+      validateToken: gatewayAuth.validateToken,
+      refreshSession: gatewayAuth.refreshSession,
     },
+    authService: gatewayAuth.authService,
     port: parseInt(process.env.PORT || '3000', 10),
     corsOrigin: process.env.CORS_ORIGIN || '*',
   }).catch((err) => {

@@ -254,6 +254,38 @@ export class AuthService {
   }
 
   /**
+   * Re-issue a fresh token for a still-active, non-expired session (token
+   * refresh). Returns null when the session is gone or has timed out.
+   * The previously issued token remains valid until its own expiry.
+   * Validates: Requirement 18.5
+   */
+  reissueToken(sessionId: string): AuthToken | null {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.isActive) {
+      return null;
+    }
+    if (this.isSessionExpired(session)) {
+      this.terminateSession(sessionId, 'inactivity_timeout');
+      return null;
+    }
+
+    const now = new Date();
+    session.lastActivityAt = now;
+
+    const token = this.tokenGenerator(session.userId, session.role, session.sessionId);
+    this.tokenToSession.set(token, session.sessionId);
+
+    return {
+      token,
+      userId: session.userId,
+      role: session.role,
+      sessionId: session.sessionId,
+      issuedAt: now,
+      expiresAt: new Date(now.getTime() + this.config.tokenExpiryMs),
+    };
+  }
+
+  /**
    * Lock an account manually (e.g., by administrator).
    * Validates: Requirement 18.2
    */

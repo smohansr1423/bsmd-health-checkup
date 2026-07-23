@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Health Suite",
+    "slug": "health-suite-mobile",
+    "newArchEnabled": true,
+    "version": "1.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "healthsuite",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.healthsuite.mobile",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Health Suite reads your Apple Health data (heart rate, blood pressure, weight, glucose, calories) to auto-fill vitals and track wellness.",
+        "NSHealthUpdateUsageDescription": "Health Suite saves assessment results back to Apple Health for your records."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.background-delivery": true
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f172a"
+      },
+      "package": "com.healthsuite.mobile"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

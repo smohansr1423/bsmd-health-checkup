@@ -30,6 +30,14 @@ import type { AuthenticatedRequest } from '../types';
 
 const router = Router();
 
+/**
+ * Public sub-router (mounted BEFORE the gateway auth guard) carrying only the
+ * CC liveness check, so `/api/cc/health` can be probed without a token — like
+ * the top-level public `/health`. All functional CC routes stay on the
+ * protected `router` below.
+ */
+const publicRouter = Router();
+
 // ─── Lazy runtime loader for the compiled CC dist bundles ────────────────────
 
 /** The three CC bundles this router drives, typed as `any` on purpose. */
@@ -90,7 +98,7 @@ function respondUnavailable(res: Response): void {
  * GET /health
  * Liveness of the CC router itself. Reports whether the CC bundles resolve.
  */
-router.get('/health', (_req: AuthenticatedRequest, res: Response) => {
+publicRouter.get('/health', (_req, res: Response) => {
   const cc = loadCcModules();
   res.status(200).json({ status: 'ok', module: 'calorie-cortisol', ccAvailable: cc !== null });
 });
@@ -310,4 +318,5 @@ router.post('/meal/correct', async (req: AuthenticatedRequest, res: Response) =>
   }
 });
 
+export { publicRouter as calorieCortisolPublicRoutes };
 export default router;
